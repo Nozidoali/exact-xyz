@@ -11,7 +11,7 @@ namespace xyz
 {
 std::string Controlled::to_string() const
 {
-    std::string phase_str = phase? "+" : "-";
-    return "C[" + phase_str + std::to_string(ctrl) + "]";
+  std::string phase_str = phase ? "+" : "-";
+  return "C[" + phase_str + std::to_string( ctrl ) + "]";
 }
 } // namespace xyz

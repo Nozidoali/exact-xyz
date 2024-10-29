@@ -9,9 +9,9 @@
 
 namespace xyz
 {
-std::ostream& operator<<(std::ostream& os, const QGate& obj)
+std::ostream& operator<<( std::ostream& os, const QGate& obj )
 {
-    os << obj.to_string();
-    return os;
+  os << obj.to_string();
+  return os;
 }
 } // namespace xyz

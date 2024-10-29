@@ -12,11 +12,8 @@
 
 using namespace xyz;
 int main() {
-    std::map<uint32_t, double> index_to_weight = {{0b0011, 1}, {0b0101, 1}, {0b1001, 1}, {0b0110, 1}, {0b1010, 1}, {0b1100, 1}};
-    QState qstate(index_to_weight, 4);
-    // std::map<uint32_t, double> index_to_weight = {{0b001, 1}, {0b010, 1}, {0b100, 1}};
-    // QState qstate(index_to_weight, 3);
-    // std::map<uint32_t, double> index_to_weight = {{0b00, 1}, {0b01, 1}, {0b11, 1}};
-    QCircuit qcircuit = prepare_state(qstate);
+    QState state = dicke_state(5, 2);
+    QCircuit qcircuit = prepare_state(state);
+    std::cout << to_qasm2(qcircuit) << std::endl;
     return 0;
 }

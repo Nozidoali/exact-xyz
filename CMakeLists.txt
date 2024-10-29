@@ -8,8 +8,8 @@ project(
     DESCRIPTION "quantum computing library"
 )
 
-option(BUILD_XYZ_BINDINGS "Build the XYZ Python bindings" ON)
-option(BUILD_XYZ_TESTS "Build the XYZ tests" ON)
+option(BUILD_XYZ_BINDINGS "Build the XYZ Python bindings" OFF)
+option(BUILD_XYZ_TESTS "Build the XYZ tests" OFF)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)

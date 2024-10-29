@@ -9,16 +9,16 @@
 
 namespace xyz
 {
-bool Rotation::is_trivial(double theta, bool use_x)
+bool Rotation::is_trivial( double theta, bool use_x )
 {
-    bool is_zero = std::abs(theta) < eps || std::abs(theta - 2 * M_PI) < eps;
-    bool is_pi = std::abs(theta - M_PI) < eps || std::abs(theta + M_PI) < eps;
-    if (use_x)
-        return is_zero || is_pi;
-    return is_zero;
+  bool is_zero = std::abs( theta ) < eps || std::abs( theta - 2 * M_PI ) < eps;
+  bool is_pi = std::abs( theta - M_PI ) < eps || std::abs( theta + M_PI ) < eps;
+  if ( use_x )
+    return is_zero || is_pi;
+  return is_zero;
 }
 std::string Rotation::to_string() const
 {
-    return "R(" + std::to_string(theta) + ")";
+  return "R(" + std::to_string( theta ) + ")";
 }
 } // namespace xyz
