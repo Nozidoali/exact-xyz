@@ -20,20 +20,10 @@ QState CX::operator()( const QState& state, const bool reverse ) const
   {
     uint32_t new_index = index;
     if ( (bool)( ( index >> ctrl ) & 1 ) == phase )
-      new_index ^= ( 1 << target_qubit );
+      new_index ^= ( 1 << target );
     new_state.index_to_weight[new_index] = weight;
   }
   new_state.n_bits = state.n_bits;
   return new_state;
-}
-uint32_t CX::num_cnots() const
-{
-  return 1;
-}
-std::string CX::to_string() const
-{
-  std::string ctrl_str = Controlled::to_string();
-  std::string x_str = X::to_string();
-  return ctrl_str + x_str;
 }
 } // namespace xyz

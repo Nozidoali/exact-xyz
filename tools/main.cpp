@@ -1,10 +1,3 @@
-/*
- * Author: Hanyu Wang
- * Created time: 2024-03-30 18:35:38
- * Last Modified by: Hanyu Wang
- * Last Modified time: 2024-04-02 12:30:34
- */
-
 #include <iostream>
 #include <map>
 #include <cstdint>
@@ -12,8 +5,15 @@
 
 using namespace xyz;
 int main() {
-    QState state = dicke_state(5, 2);
-    QCircuit qcircuit = prepare_state(state);
-    std::cout << to_qasm2(qcircuit) << std::endl;
+    QCircuit qc = read_qasm2("output.qasm");
+    std::cout << qc.num_cnots() << std::endl;
+    QCircuit new_qc = resyn(qc);
+    std::cout << new_qc.num_cnots() << std::endl;
+
+    // QState state = dicke_state(5, 2);
+    // QCircuit qcircuit = prepare_state(state);
+    // qcircuit = decompose_circuit(qcircuit);
+    // std::cout << qcircuit.num_cnots() << std::endl;
+    // write_qasm2(qcircuit, "output.qasm");
     return 0;
 }

@@ -1,10 +1,3 @@
-/*
- * Author: Hanyu Wang
- * Created time: 2024-03-30 18:18:02
- * Last Modified by: Hanyu Wang
- * Last Modified time: 2024-04-02 14:32:55
- */
-
 #include "qcircuit.hpp"
 #include <iostream>
 #include <memory>
@@ -110,7 +103,7 @@ std::vector<std::shared_ptr<QGate>> enumerate_gates( const QState& state )
     }
   return gates;
 }
-// Helper functions
+
 template<bool verbose>
 void prepare_state_impl( const QState& state, QCircuit& circuit )
 {
@@ -169,6 +162,7 @@ void prepare_state_impl( const QState& state, QCircuit& circuit )
     circuit.add_gate( states[idx].pGate );
   }
 }
+
 } // namespace detail
 
 QCircuit prepare_state( const QState& state )

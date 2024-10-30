@@ -17,8 +17,4 @@ bool Rotation::is_trivial( double theta, bool use_x )
     return is_zero || is_pi;
   return is_zero;
 }
-std::string Rotation::to_string() const
-{
-  return "R(" + std::to_string( theta ) + ")";
-}
 } // namespace xyz

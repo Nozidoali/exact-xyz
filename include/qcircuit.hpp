@@ -8,21 +8,27 @@ namespace xyz
 {
 class QCircuit
 {
-private:
-  /* data */
+public:
+  uint32_t num_qbits = 0;
   std::vector<std::shared_ptr<QGate>> pGates;
-  uint32_t num_qubits = 0;
 
 public:
   // Default constructor
   QCircuit() = default;
-  QCircuit( uint32_t num_qubits ) : num_qubits( num_qubits ){};
+  QCircuit( uint32_t num_qbits ) : num_qbits( num_qbits ){};
   void add_gate( std::shared_ptr<QGate> gate );
-  int num_cnots() const;
-  std::string to_string() const;
+  uint32_t num_cnots() const;
+  std::string to_qasm2() const;
 };
 
-QCircuit prepare_state( const QState& state );
-std::string to_qasm2( const QCircuit& circuit );
+QCircuit decompose_circuit( const QCircuit& circuit );
 
+/* DATE24 */
+QCircuit prepare_state( const QState& state );
+
+/* ICCAD 24 */
+QCircuit resyn( const QCircuit& circuit );
+
+void write_qasm2( const QCircuit& circuit, const std::string& filename );
+QCircuit read_qasm2( const std::string& filename );
 } // namespace xyz

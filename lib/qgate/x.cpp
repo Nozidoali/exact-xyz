@@ -18,18 +18,10 @@ QState X::operator()( const QState& state, const bool reverse ) const
   QState new_state;
   for ( const auto& [index, weight] : state.index_to_weight )
   {
-    uint32_t new_index = index ^ ( 1 << target_qubit );
+    uint32_t new_index = index ^ ( 1 << target );
     new_state.index_to_weight[new_index] = weight;
   }
   new_state.n_bits = state.n_bits;
   return new_state;
-}
-std::string X::to_string() const
-{
-  return "X(" + std::to_string( target_qubit ) + ")";
-}
-uint32_t X::num_cnots() const
-{
-  return 0;
 }
 } // namespace xyz

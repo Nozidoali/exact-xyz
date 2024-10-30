@@ -8,14 +8,15 @@
 
 namespace xyz
 {
+
 class QGate
 {
 private:
 public:
   /* data */
-  uint32_t target_qubit;
+  uint32_t target;
   QGate() = default;
-  QGate( uint32_t target_qubit ) : target_qubit( target_qubit ){};
+  QGate( uint32_t target ) : target( target ){};
   virtual QState operator()( const QState& state, const bool reverse = false ) const = 0;
   virtual uint32_t num_cnots() const = 0;
   virtual std::string to_string() const = 0;
@@ -27,10 +28,9 @@ class Rotation
 public:
   /* data */
   static constexpr double eps = 1e-6;
-  static bool is_trivial( double theta, bool use_x = false );
   double theta;
+  static bool is_trivial( double theta, bool use_x = false );
   Rotation( double theta ) : theta( theta ){};
-  std::string to_string() const;
 };
 
 class RY : public QGate, public Rotation
@@ -38,10 +38,10 @@ class RY : public QGate, public Rotation
 private:
 public:
   /* data */
-  RY( uint32_t target_qubit, double theta ) : Rotation( theta ), QGate( target_qubit ){};
+  RY( uint32_t target, double theta ) : Rotation( theta ), QGate( target ){};
   QState operator()( const QState& state, const bool reverse = false ) const;
-  uint32_t num_cnots() const;
-  std::string to_string() const;
+  uint32_t num_cnots() const { return 0; };
+  std::string to_string() const { return "ry(" + std::to_string( theta ) + ") q[" + std::to_string( target ) + "]"; };
 };
 
 class Controlled
@@ -52,7 +52,6 @@ public:
   uint32_t ctrl;
   bool phase;
   Controlled( uint32_t ctrl, bool phase ) : ctrl( ctrl ), phase( phase ){};
-  std::string to_string() const;
 };
 
 class MultiControlled
@@ -70,10 +69,10 @@ class CRY : public Controlled, public RY
 private:
 public:
   /* data */
-  CRY( uint32_t ctrl, bool phase, double theta, uint32_t target_qubit ) : Controlled( ctrl, phase ), RY( target_qubit, theta ){};
+  CRY( uint32_t ctrl, bool phase, double theta, uint32_t target ) : Controlled( ctrl, phase ), RY( target, theta ){};
   QState operator()( const QState& state, const bool reverse = false ) const;
-  std::string to_string() const;
-  uint32_t num_cnots() const;
+  std::string to_string() const { return "cry(" + std::to_string( theta ) + ") q[" + std::to_string( ctrl ) + "], q[" + std::to_string( target ) + "]"; };
+  uint32_t num_cnots() const { return 2; };
 };
 
 class MCRY : public MultiControlled, public RY
@@ -81,7 +80,7 @@ class MCRY : public MultiControlled, public RY
 private:
   /* data */
 public:
-  MCRY( std::vector<uint32_t> ctrls, double theta, uint32_t target_qubit ) : MultiControlled( ctrls ), RY( target_qubit, theta ){};
+  MCRY( std::vector<uint32_t> ctrls, double theta, uint32_t target ) : MultiControlled( ctrls ), RY( target, theta ){};
 };
 
 class X : public QGate
@@ -91,8 +90,8 @@ private:
 public:
   using QGate::QGate;
   QState operator()( const QState& state, const bool reverse = false ) const;
-  uint32_t num_cnots() const;
-  std::string to_string() const;
+  uint32_t num_cnots() const { return 0; };
+  std::string to_string() const { return "x q[" + std::to_string( target ) + "]"; };
 };
 
 class CX : public Controlled, public X
@@ -100,10 +99,10 @@ class CX : public Controlled, public X
 private:
   /* data */
 public:
-  CX( uint32_t ctrl, bool phase, uint32_t target_qubit ) : Controlled( ctrl, phase ), X( target_qubit ){};
+  CX( uint32_t ctrl, bool phase, uint32_t target ) : Controlled( ctrl, phase ), X( target ){};
   QState operator()( const QState& state, const bool reverse = false ) const;
-  std::string to_string() const;
-  uint32_t num_cnots() const;
+  std::string to_string() const { return "cx q[" + std::to_string( ctrl ) + "], q[" + std::to_string( target ) + "]"; };
+  uint32_t num_cnots() const { return 1; };
 };
 
 } // namespace xyz

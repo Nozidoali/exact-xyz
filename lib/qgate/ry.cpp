@@ -21,9 +21,9 @@ QState RY::operator()( const QState& state, const bool reverse ) const
     if ( new_state.index_to_weight.find( index ) == new_state.index_to_weight.end() )
       new_state.index_to_weight[index] = 0;
     new_state.index_to_weight[index] += std::cos( _theta / 2 ) * weight;
-    uint32_t new_index = index ^ ( 1 << target_qubit );
+    uint32_t new_index = index ^ ( 1 << target );
     new_state.index_to_weight[new_index] += std::sin( _theta / 2 ) *
-                                            ( ( index & ( 1 << target_qubit ) ) ? -weight : weight );
+                                            ( ( index & ( 1 << target ) ) ? -weight : weight );
   }
   for ( auto it = new_state.index_to_weight.begin(); it != new_state.index_to_weight.end(); )
   {
@@ -34,13 +34,5 @@ QState RY::operator()( const QState& state, const bool reverse ) const
   }
   new_state.n_bits = state.n_bits;
   return new_state;
-}
-uint32_t RY::num_cnots() const
-{
-  return 0;
-}
-std::string RY::to_string() const
-{
-  return "RY(" + std::to_string( target_qubit ) + "," + std::to_string( theta ) + ")";
 }
 } // namespace xyz

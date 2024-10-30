@@ -25,7 +25,8 @@ public:
   friend std::ostream& operator<<( std::ostream& os, const QState& obj );
   static constexpr double eps = 1e-6;
   uint64_t repr() const;
+  QState clone() const;
 };
-
+QState ground_state( uint32_t n_bits );
 QState dicke_state( uint32_t n, uint32_t k );
 } // namespace xyz

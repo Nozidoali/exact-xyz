@@ -53,6 +53,19 @@ uint64_t QState::repr() const
   }
   return hash;
 }
+QState QState::clone() const
+{
+  std::map<uint32_t, double> index_to_weight_copy;
+  for ( const auto& [index, weight] : index_to_weight )
+    index_to_weight_copy[index] = weight;
+  return QState( index_to_weight_copy, n_bits );
+}
+QState ground_state( uint32_t n_bits )
+{
+  std::map<uint32_t, double> index_to_weight;
+  index_to_weight[0] = 1.0;
+  return QState( index_to_weight, n_bits );
+}
 QState dicke_state( uint32_t n, uint32_t k )
 {
   std::map<uint32_t, double> index_to_weight;
