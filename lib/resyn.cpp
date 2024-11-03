@@ -129,10 +129,11 @@ std::optional<std::pair<RSOL, CXT>> rotation_solver( const RLUT& rlut, const std
           row.push_back( polarity );
         }
         double coeff;
-        coeff = ( polarity == 1 ) ? 0 : M_PI_2;
+        coeff = ( polarity == 1 ) ? 0 : M_PI;
         coeff += rlut[i].second.first * polarity;
         coeff -= rlut[i].second.second;
         b.push_back( coeff );
+        std::reverse( row.begin(), row.end() );
         R.push_back( row );
       }
       if constexpr ( verbose ) /* print the R matrix */
@@ -211,7 +212,7 @@ void resyn_impl( const QCircuit& circuit, QCircuit& new_circuit, const QState& i
       auto control = config[i].first;
       auto phase = config[i].second;
       new_circuit.add_gate( std::make_shared<RY>( target, rotation_angles[i] ) );
-      new_circuit.add_gate( std::make_shared<CX>( target, control, phase ) );
+      new_circuit.add_gate( std::make_shared<CX>( control, phase, target ) );
     }
     new_circuit.add_gate( std::make_shared<RY>( target, rotation_angles[n_cnots] ) );
   }

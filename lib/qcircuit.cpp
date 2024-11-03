@@ -37,6 +37,23 @@ QCircuit decompose_circuit( const QCircuit& circuit )
       new_circuit.add_gate( std::make_shared<CX>( cry_gate->ctrl, cry_gate->phase, cry_gate->target ) );
       continue;
     }
+    // if the class is a cx
+    std::shared_ptr<CX> cx_gate = std::dynamic_pointer_cast<CX>( pGate );
+    if ( cx_gate )
+    {
+      if ( cx_gate->phase == false )
+      {
+        new_circuit.add_gate( std::make_shared<X>( cx_gate->ctrl ) );
+        new_circuit.add_gate( std::make_shared<CX>( cx_gate->ctrl, true, cx_gate->target ) );
+        new_circuit.add_gate( std::make_shared<X>( cx_gate->ctrl ) );
+        continue;
+      }
+      else
+      {
+        new_circuit.add_gate( pGate );
+        continue;
+      }
+    }
 
     new_circuit.add_gate( pGate );
   }
