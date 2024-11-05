@@ -1,7 +1,7 @@
 #include "arch.hpp"
 
 using json = nlohmann::json;
-namespace xyz_backend
+namespace xyz
 {
 
 Config parseConfig( const std::string& filename )
@@ -77,4 +77,4 @@ Config parseConfig( const std::string& filename )
 
   return config;
 }
-} // namespace xyz_backend
+} // namespace xyz

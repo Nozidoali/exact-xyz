@@ -8,7 +8,7 @@ using namespace xyz;
 int main()
 {
 
-  QState state = dicke_state( 5, 2 );
+  QState state = dicke_state( 3, 2 );
   QCircuit qc = prepare_state( state );
   qc = decompose_circuit( qc );
   write_qasm2( qc, "temp_decomposed.qasm" );

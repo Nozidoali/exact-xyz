@@ -1,14 +1,21 @@
 #pragma once
 
+#include "json.hpp"
 #include <array>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <vector>
-#include "json.hpp"
 
-namespace xyz_backend
+namespace xyz
 {
+
+namespace constants
+{
+  constexpr double t_transfer = 15; // us
+  constexpr double t_rydberg = 0.36; // us
+  constexpr double t_gate1q = 52.0; // us
+} // namespace constants
 
 struct SLM
 {
@@ -48,5 +55,4 @@ struct Config
 
 Config parseConfig( const std::string& filename );
 
-
-} // namespace xyz_backend
+} // namespace xyz
