@@ -74,8 +74,23 @@ Schedule load_schedule( const std::string& filename )
       std::map<std::string, std::vector<int>> dependency;
 
       RearrangeJobInst rearrange_inst( id, aod_id, begin_time, end_time, aod_qubits, begin_locs, end_locs, dependency );
+
       schedule.push_back( std::make_shared<RearrangeJobInst>( rearrange_inst ) );
       std::cout << "RearrangeJob instruction added " << rearrange_inst.id << std::endl;
+    }
+    else if ( type == "rydberg" )
+    {
+      int id = inst["id"];
+      int zone_id = inst["zone_id"];
+      double begin_time = inst["begin_time"];
+      double end_time = inst["end_time"];
+      std::map<std::string, std::vector<int>> dependency;
+      std::vector<std::shared_ptr<Gate>> gates;
+      for ( const auto& gate : inst["gates"] )
+        gates.push_back( std::make_shared<Gate2Q>( gate["id"], gate["q0"], gate["q1"] ) );
+      RydbergInst rydberg_inst( id, zone_id, begin_time, end_time, gates, dependency );
+      schedule.push_back( std::make_shared<RydbergInst>( rydberg_inst ) );
+      std::cout << "Rydberg instruction added " << rydberg_inst.id << std::endl;
     }
   }
 

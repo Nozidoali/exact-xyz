@@ -18,7 +18,7 @@ QState CRY::operator()( const QState& state, const bool reverse ) const
   QState new_state;
   for ( const auto& [index, weight] : state.index_to_weight )
   {
-    if ( (bool)( ( index >> ctrl ) & 1 ) != phase )
+    if ( (bool)( ( index >> ctrl ) & (uint32_t)1u ) != phase )
     {
       new_state.index_to_weight[index] = weight;
       continue;

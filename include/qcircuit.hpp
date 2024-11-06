@@ -31,4 +31,6 @@ QCircuit resyn( const QCircuit& circuit );
 
 void write_qasm2( const QCircuit& circuit, const std::string& filename );
 QCircuit read_qasm2( const std::string& filename );
+QState simulate( const QCircuit& circuit, const QState& state );
+
 } // namespace xyz

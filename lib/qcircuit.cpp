@@ -138,4 +138,11 @@ QCircuit read_qasm2( const std::string& filename )
   }
   return circuit;
 }
+QState simulate( const QCircuit& circuit, const QState& state )
+{
+  QState new_state = state;
+  for ( const auto& pGate : circuit.pGates )
+    new_state = (*pGate)( new_state );
+  return new_state;
+}
 } // namespace xyz

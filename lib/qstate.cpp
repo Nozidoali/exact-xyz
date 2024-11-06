@@ -69,14 +69,20 @@ QState ground_state( uint32_t n_bits )
 QState dicke_state( uint32_t n, uint32_t k )
 {
   std::map<uint32_t, double> index_to_weight;
+  double total_weight = 0;
   for ( uint32_t i = 0; i < ( 1 << n ); i++ )
   {
     uint32_t count = 0;
     for ( uint32_t j = 0; j < n; j++ )
       count += ( i >> j ) & 1;
     if ( count == k )
-      index_to_weight[i] = 1.0 / sqrt( 1 << k );
+    {
+      index_to_weight[i] = 1.0;
+      total_weight += 1.0;
+    }
   }
+  for ( auto& [index, weight] : index_to_weight )
+    weight /= std::sqrt( total_weight );
   return QState( index_to_weight, n );
 }
 
