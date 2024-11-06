@@ -1,5 +1,5 @@
-add_executable(main main.cpp)
-target_link_libraries(main cxyz)
+add_executable(prepare_dicke prepare_dicke.cpp)
+target_link_libraries(prepare_dicke cxyz)
 
 add_executable(backend backend.cpp)
 target_link_libraries(backend cxyz)
