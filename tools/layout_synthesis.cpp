@@ -2,10 +2,10 @@
 #include <cstdint>
 #include <iostream>
 #include <map>
-#include <synthesis.hpp>
+#include <zoned_arch.hpp>
 
 using namespace xyz;
-using namespace xyz;
+using namespace zoned;
 using cmdline::parser;
 
 parser CommandLineParser()
@@ -29,7 +29,6 @@ int main( int argc, char** argv )
   std::cout << "Number of Storage Zones: " << config.storage_zones.size() << "\n";
   std::cout << "Number of Entanglement Zones: " << config.entanglement_zones.size() << "\n";
   std::cout << "Number of AODs: " << config.aods.size() << "\n";
-
 
   // Synthesis 
   layout_synthesis( qc, config );

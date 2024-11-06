@@ -151,7 +151,7 @@ QState simulate_circuit( const QCircuit& circuit, const QState& state, bool verb
       std::cout << "Applying gate: " << pGate->to_string() << std::endl;
       std::cout << "State before: " << new_state << std::endl;
     }
-    new_state = (*pGate)( new_state );
+    new_state = ( *pGate )( new_state );
     if ( verbose )
     {
       std::cout << "State after: " << new_state << std::endl;

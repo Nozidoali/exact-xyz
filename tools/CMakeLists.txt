@@ -1,8 +1,7 @@
-add_executable(prepare_dicke prepare_dicke.cpp)
-target_link_libraries(prepare_dicke cxyz)
+file(GLOB CPP_FILES "*.cpp")
 
-add_executable(backend backend.cpp)
-target_link_libraries(backend cxyz)
-
-add_executable(evaluate evaluate.cpp)
-target_link_libraries(evaluate cxyz)
+foreach(CPP_FILE ${CPP_FILES})
+  get_filename_component(EXECUTABLE_NAME ${CPP_FILE} NAME_WE)
+  add_executable(${EXECUTABLE_NAME} ${CPP_FILE})
+  target_link_libraries(${EXECUTABLE_NAME} cxyz)
+endforeach()

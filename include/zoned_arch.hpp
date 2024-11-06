@@ -6,6 +6,8 @@
 namespace xyz
 {
 
+namespace zoned
+{
 class Gate {
 public:
     Gate() = default;
@@ -35,6 +37,7 @@ public:
     : id(id), name(name), begin_time(begin), end_time(end) {}
 
   virtual ~Inst() = default;
+  virtual inline double duration() const = 0; // Virtual method to return the duration of the instruction
   virtual void print() const = 0; // Virtual method to print details of the instruction
 };
 
@@ -49,6 +52,10 @@ public:
   void print() const override {
     std::cout << name << ": id=" << id << ", begin_time=" << begin_time
           << ", end_time=" << end_time << ", init_locs.size=" << init_locs.size() << std::endl;
+  }
+
+  inline double duration() const override {
+    return 0.0;
   }
 };
 
@@ -72,6 +79,10 @@ public:
           << ", begin_time=" << begin_time << ", end_time=" << end_time
           << ", locs.size=" << locs.size() << ", gates.size=" << gates.size() << std::endl;
   }
+
+  inline double duration() const override {
+    return constants::t_gate1q;
+  }
 };
 
 // RearrangeJobInst class
@@ -94,6 +105,10 @@ public:
           << ", begin_time=" << begin_time << ", end_time=" << end_time
           << ", aod_qubits.size=" << aod_qubits.size() << std::endl;
   }
+
+  inline double duration() const override {
+    return constants::t_transfer;
+  }
 };
 
 // RydbergInst class
@@ -114,12 +129,16 @@ public:
           << ", begin_time=" << begin_time << ", end_time=" << end_time
           << ", gates.size=" << gates.size() << std::endl;
   }
+
+  inline double duration() const override {
+    return constants::t_rydberg;
+  }
 };
 
 using Schedule = std::vector<std::shared_ptr<Inst>>;
 
 Schedule layout_synthesis( const QCircuit& circuit, const Config& config );
 Schedule load_schedule( const std::string& filename );
-void simulate( const Schedule& schedule );
-
+void simulate( const Schedule& schedule, const Config& config );
+} // namespace zoned
 } // namespace xyz

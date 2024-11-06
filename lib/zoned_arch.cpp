@@ -1,9 +1,11 @@
+#include "zoned_arch.hpp"
 #include "json.hpp"
-#include "synthesis.hpp"
 
 using json = nlohmann::json;
 
 namespace xyz
+{
+namespace zoned
 {
 
 // Main function to parse JSON
@@ -19,6 +21,7 @@ Schedule load_schedule( const std::string& filename )
 
   for ( const auto& inst : json_object["instructions"] )
   {
+
     std::string type = inst["type"];
     if ( type == "init" )
     {
@@ -97,13 +100,51 @@ Schedule load_schedule( const std::string& filename )
   return schedule;
 }
 
-void simulate( const Schedule& schedule )
+void simulate( const Schedule& schedule, const Config& config )
 {
+  uint32_t n_inst = 0;
   for ( const auto& inst : schedule )
   {
-    std::cout << "Printing instruction: ";
+    std::cout << "--------------------------------" << std::endl;
+    std::cout << "Instruction " << ( n_inst++ ) << std::endl;
     inst->print();
+
+    // check the type of instruction
+    if ( inst->name == "InitInst" )
+    {
+      auto init_inst = std::dynamic_pointer_cast<InitInst>( inst );
+      std::cout << "InitInst: " << init_inst->id << std::endl;
+      std::cout << "Duration: " << init_inst->duration() << std::endl;
+    }
+    else if ( inst->name == "OneQGateInst" )
+    {
+      auto oneq_inst = std::dynamic_pointer_cast<OneQGateInst>( inst );
+      std::cout << "OneQGateInst: " << oneq_inst->id << std::endl;
+      std::cout << "Duration: " << oneq_inst->duration() << std::endl;
+    }
+    else if ( inst->name == "RearrangeJobInst" )
+    {
+      auto rearrange_inst = std::dynamic_pointer_cast<RearrangeJobInst>( inst );
+      std::cout << "RearrangeJobInst: " << rearrange_inst->id << std::endl;
+      std::cout << "Duration: " << rearrange_inst->duration() << std::endl;
+    }
+    else if ( inst->name == "RydbergInst" )
+    {
+      auto rydberg_inst = std::dynamic_pointer_cast<RydbergInst>( inst );
+      std::cout << "RydbergInst: " << rydberg_inst->id << std::endl;
+      std::cout << "Duration: " << rydberg_inst->duration() << std::endl;
+    }
   }
 }
 
+Schedule layout_synthesis( const QCircuit& circuit, const Config& config )
+{
+  // we first transpile the circuit to a {CNOT, U2} basis
+  QCircuit transpiled_circuit = decompose_circuit( circuit );
+
+  Schedule schedule;
+  return schedule;
+}
+
+} // namespace zoned
 } // namespace xyz

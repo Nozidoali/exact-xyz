@@ -1,6 +1,9 @@
 #include "qcircuit.hpp"
+#include "solvers.hpp"
 #include <algorithm>
+#include <bitset>
 #include <optional>
+
 namespace xyz
 {
 namespace detail
@@ -23,65 +26,6 @@ void enumerate_cnot_templates( std::vector<CXT>& templates, const std::vector<ui
       curr_template.pop_back();
     }
 }
-std::optional<RSOL> gaussian_elimination( std::vector<std::vector<int>>& R, std::vector<double>& b )
-{
-  uint32_t m = R.size();    /* number of rows */
-  uint32_t n = R[0].size(); /* number of columns */
-
-  // print the R matrix and the RHS
-  for ( uint32_t i = 0; i < m; i++ )
-  {
-    for ( uint32_t j = 0; j < n; j++ )
-      std::cout << R[i][j] << " ";
-    std::cout << " | " << b[i] << std::endl;
-  }
-  std::cout << std::endl;
-
-  for ( uint32_t i = 0; i < m; i++ )
-  {
-    /* find the pivot */
-    uint32_t pivot = i;
-    for ( uint32_t j = i; j < m; j++ )
-      if ( R[j][i] != 0 )
-      {
-        pivot = j;
-        break;
-      }
-    if ( pivot != i )
-    {
-      std::swap( R[i], R[pivot] );
-      std::swap( b[i], b[pivot] );
-    }
-    if ( R[i][i] == 0 )
-      return std::nullopt;
-    /* eliminate the column */
-    for ( uint32_t j = i + 1; j < m; j++ )
-    {
-      if ( R[j][i] == 0 )
-        continue;
-      double ratio = (double)R[j][i] / R[i][i];
-      for ( uint32_t k = i; k < n; k++ )
-        R[j][k] -= R[i][k] * ratio;
-      b[j] -= b[i] * ratio;
-    }
-  }
-
-  RSOL sol;
-  for ( int i = m - 1; i >= 0; i-- )
-  {
-    double sum = 0;
-    for ( uint32_t j = i + 1; j < n; j++ )
-      sum += R[i][j] * sol[j - i - 1];
-    sol.push_back( ( b[i] - sum ) / R[i][i] );
-  }
-
-  std::cout << "solution: ";
-  for ( auto elem : sol )
-    std::cout << elem << " ";
-  std::cout << std::endl;
-
-  return sol;
-}
 
 template<bool verbose>
 std::optional<std::pair<RSOL, CXT>> rotation_solver( const RLUT& rlut, const std::vector<uint32_t>& controls, uint32_t max_cnots )
@@ -90,6 +34,8 @@ std::optional<std::pair<RSOL, CXT>> rotation_solver( const RLUT& rlut, const std
   std::vector<CXT> templates;
   for ( uint32_t n_cnots = 0; n_cnots < max_cnots; ++n_cnots )
   {
+    if constexpr ( verbose )
+      std::cout << "Solving for " << n_cnots << " CNOTs, max_cnots = " << max_cnots << std::endl;
     templates.clear();
     CXT _config;
     enumerate_cnot_templates( templates, controls, n_cnots, 0, _config );
@@ -114,7 +60,8 @@ std::optional<std::pair<RSOL, CXT>> rotation_solver( const RLUT& rlut, const std
       {
         uint32_t index = rlut[i].first;
         if constexpr ( verbose )
-          std::cout << "index: " << index << std::endl;
+          /* binary representation of the index */
+          std::cout << "index: " << std::bitset<8>( index ) << std::endl;
         int polarity = 1;
         std::vector<int> row;
         row.push_back( polarity );
@@ -129,25 +76,16 @@ std::optional<std::pair<RSOL, CXT>> rotation_solver( const RLUT& rlut, const std
           row.push_back( polarity );
         }
         double coeff;
-        coeff = ( polarity == 1 ) ? 0 : M_PI;
-        coeff += rlut[i].second.first * polarity;
-        coeff -= rlut[i].second.second;
+        coeff = ( polarity == 1 ) ? 0 : -M_PI;
+        coeff -= rlut[i].second.first * polarity;
+        coeff += rlut[i].second.second;
         b.push_back( coeff );
         std::reverse( row.begin(), row.end() );
         R.push_back( row );
       }
-      if constexpr ( verbose ) /* print the R matrix */
-      {
-        for ( auto row : R )
-        {
-          for ( auto elem : row )
-            std::cout << elem << " ";
-          std::cout << std::endl;
-        }
-      }
-      auto _sol = gaussian_elimination( R, b );
-      if ( _sol )
-        return std::make_pair( *_sol, config );
+      auto success = gaussian_elimination( R, b );
+      if ( success )
+        return std::make_pair( b, config );
     }
   }
   return std::nullopt;
@@ -188,7 +126,7 @@ void resyn_impl( const QCircuit& circuit, QCircuit& new_circuit, const QState& i
     auto _it = final_ry.find( it.first );
     rotation_lut.push_back( std::make_pair( it.first, std::make_pair( it.second, _it->second ) ) );
     if constexpr ( verbose )
-      std::cout << it.first << " " << it.second << " " << _it->second << std::endl;
+      std::cout << std::bitset<8>( it.first ) << " " << it.second << " " << _it->second << std::endl;
   }
   if constexpr ( verbose )
     std::cout << std::endl;
@@ -198,10 +136,16 @@ void resyn_impl( const QCircuit& circuit, QCircuit& new_circuit, const QState& i
   for ( uint32_t i = 0; i < circuit.num_qbits; i++ )
     if ( i != target )
       controls.push_back( i );
-  auto sol = rotation_solver<true>( rotation_lut, controls, initial_cost );
+  auto sol = rotation_solver<verbose>( rotation_lut, controls, initial_cost );
   if ( sol )
   {
-    std::cout << "solution found" << std::endl;
+    if constexpr ( verbose )
+    {
+      std::cout << "solution found" << std::endl;
+      for ( auto elem : sol->first )
+        std::cout << elem << " ";
+      std::cout << std::endl;
+    }
 
     RSOL rotation_angles = sol->first;
     CXT config = sol->second;
@@ -228,7 +172,7 @@ void resyn_impl( const QCircuit& circuit, QCircuit& new_circuit, const QState& i
 QCircuit resyn( const QCircuit& circuit )
 {
   QCircuit new_circuit( circuit.num_qbits );
-  detail::resyn_impl<false>( circuit, new_circuit, ground_state( circuit.num_qbits ), 0 );
+  detail::resyn_impl<true>( circuit, new_circuit, ground_state( circuit.num_qbits ), 0 );
   return new_circuit;
 }
 
