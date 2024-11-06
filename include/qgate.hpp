@@ -71,7 +71,10 @@ public:
   /* data */
   CRY( uint32_t ctrl, bool phase, double theta, uint32_t target ) : Controlled( ctrl, phase ), RY( target, theta ){};
   QState operator()( const QState& state, const bool reverse = false ) const;
-  std::string to_string() const { return "cry(" + std::to_string( theta ) + ") q[" + std::to_string( ctrl ) + "], q[" + std::to_string( target ) + "]"; };
+  std::string to_string() const {
+    std::string gate = phase? "cry" : "cry_false";
+    return gate + "(" + std::to_string( theta ) + ") q[" + std::to_string( ctrl ) + "], q[" + std::to_string( target ) + "]"; 
+  };
   uint32_t num_cnots() const { return 2; };
 };
 
@@ -101,7 +104,10 @@ private:
 public:
   CX( uint32_t ctrl, bool phase, uint32_t target ) : Controlled( ctrl, phase ), X( target ){};
   QState operator()( const QState& state, const bool reverse = false ) const;
-  std::string to_string() const { return "cx q[" + std::to_string( ctrl ) + "], q[" + std::to_string( target ) + "]"; };
+  std::string to_string() const {
+    std::string gate = phase? "cx" : "cx_false";
+    return gate + " q[" + std::to_string( ctrl ) + "], q[" + std::to_string( target ) + "]"; 
+  };
   uint32_t num_cnots() const { return 1; };
 };
 

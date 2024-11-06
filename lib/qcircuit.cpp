@@ -32,9 +32,12 @@ QCircuit decompose_circuit( const QCircuit& circuit )
     if ( cry_gate )
     {
       new_circuit.add_gate( std::make_shared<RY>( cry_gate->target, cry_gate->theta / 2 ) );
-      new_circuit.add_gate( std::make_shared<CX>( cry_gate->ctrl, cry_gate->phase, cry_gate->target ) );
-      new_circuit.add_gate( std::make_shared<RY>( cry_gate->target, -cry_gate->theta / 2 ) );
-      new_circuit.add_gate( std::make_shared<CX>( cry_gate->ctrl, cry_gate->phase, cry_gate->target ) );
+      new_circuit.add_gate( std::make_shared<CX>( cry_gate->ctrl, true, cry_gate->target ) );
+      if ( cry_gate->phase == false )
+        new_circuit.add_gate( std::make_shared<RY>( cry_gate->target, cry_gate->theta / 2 ) );
+      else
+        new_circuit.add_gate( std::make_shared<RY>( cry_gate->target, -cry_gate->theta / 2 ) );
+      new_circuit.add_gate( std::make_shared<CX>( cry_gate->ctrl, true, cry_gate->target ) );
       continue;
     }
     // if the class is a cx
@@ -138,11 +141,23 @@ QCircuit read_qasm2( const std::string& filename )
   }
   return circuit;
 }
-QState simulate( const QCircuit& circuit, const QState& state )
+QState simulate_circuit( const QCircuit& circuit, const QState& state, bool verbose )
 {
   QState new_state = state;
   for ( const auto& pGate : circuit.pGates )
+  {
+    if ( verbose )
+    {
+      std::cout << "Applying gate: " << pGate->to_string() << std::endl;
+      std::cout << "State before: " << new_state << std::endl;
+    }
     new_state = (*pGate)( new_state );
+    if ( verbose )
+    {
+      std::cout << "State after: " << new_state << std::endl;
+      std::cout << "----------------------------------------" << std::endl;
+    }
+  }
   return new_state;
 }
 } // namespace xyz
