@@ -17,7 +17,7 @@ std::string initialize( py::object qstate )
   uint32_t num_qbits = qstate.attr( "num_qbits" ).cast<uint32_t>();
 
   // Now use the map to initialize and return a QCircuit instance
-  QState state( index_to_weight, num_qbits );
+  QRState state( index_to_weight, num_qbits );
   return prepare_state( state ).to_string();
 }
 } // namespace xyz

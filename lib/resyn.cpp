@@ -92,7 +92,7 @@ std::optional<std::pair<RSOL, CXT>> rotation_solver( const RLUT& rlut, const std
 }
 
 template<bool verbose>
-void resyn_impl( const QCircuit& circuit, QCircuit& new_circuit, const QState& initial_state, uint32_t pos )
+void resyn_impl( const QCircuit& circuit, QCircuit& new_circuit, const QRState& initial_state, uint32_t pos )
 {
   if ( pos >= circuit.pGates.size() )
     return;
@@ -101,7 +101,7 @@ void resyn_impl( const QCircuit& circuit, QCircuit& new_circuit, const QState& i
   auto gate = circuit.pGates[pos];
   uint32_t target = gate->target;
   uint32_t initial_cost = gate->num_cnots();
-  QState new_state = ( *gate )( initial_state );
+  QRState new_state = ( *gate )( initial_state );
   if constexpr ( verbose )
     std::cout << "gate: " << *gate << std::endl;
   uint32_t new_pos = pos + 1;
@@ -172,7 +172,7 @@ void resyn_impl( const QCircuit& circuit, QCircuit& new_circuit, const QState& i
 QCircuit resyn( const QCircuit& circuit )
 {
   QCircuit new_circuit( circuit.num_qbits );
-  detail::resyn_impl<true>( circuit, new_circuit, ground_state( circuit.num_qbits ), 0 );
+  detail::resyn_impl<true>( circuit, new_circuit, ground_rstate( circuit.num_qbits ), 0 );
   return new_circuit;
 }
 

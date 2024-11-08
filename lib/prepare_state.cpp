@@ -1,4 +1,5 @@
 #include "qcircuit.hpp"
+#include <fmt/format.h>
 #include <iostream>
 #include <memory>
 #include <optional>
@@ -26,13 +27,13 @@ struct bfs_state
 struct memorized_state
 {
   uint32_t prev;
-  QState state;
+  QRState state;
   std::shared_ptr<QGate> pGate = nullptr;
-  memorized_state( const QState& state, uint32_t prev ) : state( state ), prev( prev ){};
-  memorized_state( const QState& state, uint32_t prev, std::shared_ptr<QGate> pGate ) : state( state ), prev( prev ), pGate( pGate ){};
+  memorized_state( const QRState& state, uint32_t prev ) : state( state ), prev( prev ){};
+  memorized_state( const QRState& state, uint32_t prev, std::shared_ptr<QGate> pGate ) : state( state ), prev( prev ), pGate( pGate ){};
 };
 
-std::vector<std::shared_ptr<QGate>> enumerate_gates( const QState& state )
+std::vector<std::shared_ptr<QGate>> enumerate_gates( const QRState& state )
 {
   std::vector<std::shared_ptr<QGate>> gates;
   if ( state.index_to_weight.size() == 1 )
@@ -105,7 +106,7 @@ std::vector<std::shared_ptr<QGate>> enumerate_gates( const QState& state )
 }
 
 template<bool verbose>
-void prepare_state_impl( const QState& state, QCircuit& circuit )
+void prepare_state_impl( const QRState& state, QCircuit& circuit )
 {
   std::priority_queue<bfs_state> q;
   std::vector<memorized_state> states;
@@ -129,7 +130,7 @@ void prepare_state_impl( const QState& state, QCircuit& circuit )
       break;
     }
     if constexpr ( verbose )
-      std::cout << "current_state: " << current_state.state << " repr = " << current_state.state.repr() << std::endl;
+      fmt::print( "current_state: {} repr = {}\n", current_state.state.to_string(), current_state.state.repr() );
     for ( const auto& gate : enumerate_gates( current_state.state ) )
     {
       if constexpr ( verbose )
@@ -165,10 +166,10 @@ void prepare_state_impl( const QState& state, QCircuit& circuit )
 
 } // namespace detail
 
-QCircuit prepare_state( const QState& state )
+QCircuit prepare_state( const QRState& state )
 {
   QCircuit circuit( state.n_bits );
-  detail::prepare_state_impl<false>( state, circuit );
+  detail::prepare_state_impl<true>( state, circuit );
   return circuit;
 }
 } // namespace xyz

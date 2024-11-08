@@ -15,7 +15,7 @@ public:
 public:
   // Default constructor
   QCircuit() = default;
-  QCircuit( uint32_t num_qbits ) : num_qbits( num_qbits ){};
+  QCircuit( uint32_t num_qbits ) : num_qbits( num_qbits ) {};
   void add_gate( std::shared_ptr<QGate> gate );
   uint32_t num_cnots() const;
   std::string to_qasm2() const;
@@ -24,14 +24,15 @@ public:
 QCircuit decompose_circuit( const QCircuit& circuit );
 
 /* DATE24 */
-QCircuit prepare_state( const QState& state );
+QCircuit prepare_state( const QRState& state );
 
 /* ICCAD 24 */
 QCircuit resyn( const QCircuit& circuit );
 
 void write_qasm2( const QCircuit& circuit, const std::string& filename );
-QCircuit read_qasm2( const std::string& filename );
+QCircuit read_qasm2( const std::string& filename, bool verbose = false );
 
-QState simulate_circuit( const QCircuit& circuit, const QState& state, bool verbose = false );
+
+QRState simulate_circuit( const QCircuit& circuit, const QRState& state, bool verbose = false );
 
 } // namespace xyz

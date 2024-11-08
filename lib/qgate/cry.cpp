@@ -12,10 +12,10 @@
 
 namespace xyz
 {
-QState CRY::operator()( const QState& state, const bool reverse ) const
+QRState CRY::operator()( const QRState& state, const bool reverse ) const
 {
   auto _theta = reverse ? -theta : theta;
-  QState new_state;
+  QRState new_state;
   for ( const auto& [index, weight] : state.index_to_weight )
   {
     if ( (bool)( ( index >> ctrl ) & (uint32_t)1u ) != phase )
@@ -32,7 +32,7 @@ QState CRY::operator()( const QState& state, const bool reverse ) const
   }
   for ( auto it = new_state.index_to_weight.begin(); it != new_state.index_to_weight.end(); )
   {
-    if ( std::abs( it->second ) < QState::eps )
+    if ( std::abs( it->second ) < QRState::eps )
       it = new_state.index_to_weight.erase( it );
     else
       ++it;

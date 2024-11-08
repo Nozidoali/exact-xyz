@@ -3,26 +3,32 @@
 
 namespace xyz
 {
-bool QState::is_ground() const
+bool QRState::is_ground() const
 {
   return index_to_weight.size() == 1 && index_to_weight.find( 0 ) != index_to_weight.end();
 }
-std::ostream& operator<<( std::ostream& os, const QState& obj )
+std::string QRState::to_string() const
 {
-  for ( auto it = obj.index_to_weight.begin(); it != obj.index_to_weight.end(); it++ )
+  std::string str;
+  for ( auto it = index_to_weight.begin(); it != index_to_weight.end(); it++ )
   {
     auto index = it->first;
     auto weight = it->second;
-    os << weight << "*|";
-    for ( uint32_t i = 0; i < obj.n_bits; i++ )
-      os << ( ( index >> i ) & 1 );
-    os << ">";
-    if ( std::next( it ) != obj.index_to_weight.end() )
-      os << " + ";
+    str += std::to_string( weight ) + "*|";
+    for ( uint32_t i = 0; i < n_bits; i++ )
+      str += ( ( index >> i ) & 1 ) ? "1" : "0";
+    str += ">";
+    if ( std::next( it ) != index_to_weight.end() )
+      str += " + ";
   }
+  return str;
+}
+std::ostream& operator<<( std::ostream& os, const QRState& obj )
+{
+  os << obj.to_string();
   return os;
 }
-std::unordered_map<uint32_t, double> QState::to_ry_table( uint32_t target ) const
+std::unordered_map<uint32_t, double> QRState::to_ry_table( uint32_t target ) const
 {
   std::unordered_map<uint32_t, double> ry_table;
   for ( const auto& [index, weight] : index_to_weight )
@@ -41,7 +47,7 @@ std::unordered_map<uint32_t, double> QState::to_ry_table( uint32_t target ) cons
   }
   return ry_table;
 }
-uint64_t QState::repr() const
+uint64_t QRState::repr() const
 {
   if ( hash_value.has_value() )
     return hash_value.value();
@@ -53,20 +59,20 @@ uint64_t QState::repr() const
   }
   return hash;
 }
-QState QState::clone() const
+QRState QRState::clone() const
 {
   std::map<uint32_t, double> index_to_weight_copy;
   for ( const auto& [index, weight] : index_to_weight )
     index_to_weight_copy[index] = weight;
-  return QState( index_to_weight_copy, n_bits );
+  return QRState( index_to_weight_copy, n_bits );
 }
-QState ground_state( uint32_t n_bits )
+QRState ground_rstate( uint32_t n_bits )
 {
   std::map<uint32_t, double> index_to_weight;
   index_to_weight[0] = 1.0;
-  return QState( index_to_weight, n_bits );
+  return QRState( index_to_weight, n_bits );
 }
-QState dicke_state( uint32_t n, uint32_t k )
+QRState dicke_state( uint32_t n, uint32_t k )
 {
   std::map<uint32_t, double> index_to_weight;
   double total_weight = 0;
@@ -83,7 +89,29 @@ QState dicke_state( uint32_t n, uint32_t k )
   }
   for ( auto& [index, weight] : index_to_weight )
     weight /= std::sqrt( total_weight );
-  return QState( index_to_weight, n );
+  return QRState( index_to_weight, n );
 }
 
+std::ostream& operator<<( std::ostream& os, const QState& obj )
+{
+  for ( auto it = obj.index_to_weight.begin(); it != obj.index_to_weight.end(); it++ )
+  {
+    auto index = it->first;
+    auto weight = it->second;
+    os << weight << "*|";
+    for ( uint32_t i = 0; i < obj.n_bits; i++ )
+      os << ( ( index >> i ) & 1 );
+    os << ">";
+    if ( std::next( it ) != obj.index_to_weight.end() )
+      os << " + ";
+  }
+  return os;
+}
+
+QState ground_state( uint32_t n_bits )
+{
+  std::map<uint32_t, std::complex<double>> index_to_weight;
+  index_to_weight[0] = 1.0;
+  return QState( index_to_weight, n_bits );
+}
 } // namespace xyz

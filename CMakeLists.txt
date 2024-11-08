@@ -17,6 +17,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(XYZ_SOURCE_DIR ${CMAKE_SOURCE_DIR})
 
 include_directories(${XYZ_SOURCE_DIR}/include)
+
 add_subdirectory(${XYZ_SOURCE_DIR}/lib)
 add_subdirectory(${XYZ_SOURCE_DIR}/tools)
 

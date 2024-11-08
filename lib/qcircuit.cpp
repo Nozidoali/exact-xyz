@@ -78,23 +78,33 @@ void write_qasm2( const QCircuit& circuit, const std::string& filename )
   file << circuit.to_qasm2();
   file.close();
 }
-QCircuit read_qasm2( const std::string& filename )
+QCircuit read_qasm2( const std::string& filename, bool verbose )
 {
   std::ifstream file( filename );
   std::string line;
   QCircuit circuit;
+
+  if ( verbose )
+    std::cout << "Reading file: " << filename << std::endl;
+
   while ( std::getline( file, line ) )
   {
-    if ( line.find( "qreg" ) != std::string::npos )
+    if ( verbose )
+    {
+      std::cout << "----------------------------------------" << std::endl;
+      std::cout << line << std::endl;
+    }
+    if ( line.find( "qreg " ) == 0 )
     {
       auto pos1 = line.find( "[" );
       auto pos2 = line.find( "]", pos1 );
       auto num_qbits = std::stoi( line.substr( pos1 + 1, pos2 - pos1 - 1 ) );
       circuit.num_qbits = num_qbits;
-      // std::cout << "num_qbits: " << num_qbits << std::endl;
+      if ( verbose )
+        std::cout << "num_qbits: " << num_qbits << std::endl;
       continue;
     }
-    if ( line.find( "x " ) == 0 )
+    else if ( line.find( "x " ) == 0 )
     {
       auto pos1 = line.find( "[" );
       auto pos2 = line.find( "]", pos1 );
@@ -102,7 +112,7 @@ QCircuit read_qasm2( const std::string& filename )
       circuit.add_gate( std::make_shared<X>( target ) );
       continue;
     }
-    if ( line.find( "cx " ) == 0 )
+    else if ( line.find( "cx " ) == 0 )
     {
       auto pos1 = line.find( "[" );
       auto pos2 = line.find( "]", pos1 );
@@ -113,7 +123,7 @@ QCircuit read_qasm2( const std::string& filename )
       circuit.add_gate( std::make_shared<CX>( ctrl, true, target ) );
       continue;
     }
-    if ( line.find( "ry" ) == 0 ) // ry
+    else if ( line.find( "ry" ) == 0 ) // ry
     {
       auto pos1 = line.find( "[" );
       auto pos2 = line.find( "]", pos1 );
@@ -124,7 +134,7 @@ QCircuit read_qasm2( const std::string& filename )
       circuit.add_gate( std::make_shared<RY>( target, theta ) );
       continue;
     }
-    if ( line.find( "cry" ) == 0 )
+    else if ( line.find( "cry" ) == 0 )
     {
       auto pos1 = line.find( "[" );
       auto pos2 = line.find( "]", pos1 );
@@ -138,12 +148,71 @@ QCircuit read_qasm2( const std::string& filename )
       circuit.add_gate( std::make_shared<CRY>( ctrl, true, theta, target ) );
       continue;
     }
+    else if ( line.find( "h " ) == 0 )
+    {
+      auto pos1 = line.find( "[" );
+      auto pos2 = line.find( "]", pos1 );
+      auto target = std::stoi( line.substr( pos1 + 1, pos2 - pos1 - 1 ) );
+      circuit.add_gate( std::make_shared<H>( target ) );
+      continue;
+    }
+    else if ( line.find( "t " ) == 0 )
+    {
+      auto pos1 = line.find( "[" );
+      auto pos2 = line.find( "]", pos1 );
+      auto target = std::stoi( line.substr( pos1 + 1, pos2 - pos1 - 1 ) );
+      circuit.add_gate( std::make_shared<T>( target ) );
+      continue;
+    }
+    else if ( line.find( "cx_false" ) == 0 )
+    {
+      auto pos1 = line.find( "[" );
+      auto pos2 = line.find( "]", pos1 );
+      auto pos3 = line.find( "[", pos2 );
+      auto pos4 = line.find( "]", pos3 );
+      auto ctrl = std::stoi( line.substr( pos1 + 1, pos2 - pos1 - 1 ) );
+      auto target = std::stoi( line.substr( pos3 + 1, pos4 - pos3 - 1 ) );
+      circuit.add_gate( std::make_shared<CX>( ctrl, false, target ) );
+      continue;
+    }
+    else if ( line.find( "cry_false" ) == 0 )
+    {
+      auto pos1 = line.find( "[" );
+      auto pos2 = line.find( "]", pos1 );
+      auto pos3 = line.find( "[", pos2 );
+      auto pos4 = line.find( "]", pos3 );
+      auto pos5 = line.find( "(" );
+      auto pos6 = line.find( ")", pos5 );
+      auto ctrl = std::stoi( line.substr( pos1 + 1, pos2 - pos1 - 1 ) );
+      auto target = std::stoi( line.substr( pos3 + 1, pos4 - pos3 - 1 ) );
+      auto theta = std::stod( line.substr( pos5 + 1, pos6 - pos5 - 1 ) );
+      circuit.add_gate( std::make_shared<CRY>( ctrl, false, theta, target ) );
+      continue;
+    }
+    else if ( line.find( "ccx " ) == 0 )
+    {
+      auto pos1 = line.find( "[" );
+      auto pos2 = line.find( "]", pos1 );
+      auto pos3 = line.find( "[", pos2 );
+      auto pos4 = line.find( "]", pos3 );
+      auto pos5 = line.find( "[", pos4 );
+      auto pos6 = line.find( "]", pos5 );
+      auto ctrl1 = std::stoi( line.substr( pos1 + 1, pos2 - pos1 - 1 ) );
+      auto ctrl2 = std::stoi( line.substr( pos3 + 1, pos4 - pos3 - 1 ) );
+      auto target = std::stoi( line.substr( pos5 + 1, pos6 - pos5 - 1 ) );
+      circuit.add_gate( std::make_shared<CCX>( ctrl1, ctrl2, target ) );
+      continue;
+    }
+    else
+    {
+      std::cerr << "Unknown gate: " << line << std::endl;
+    }
   }
   return circuit;
 }
-QState simulate_circuit( const QCircuit& circuit, const QState& state, bool verbose )
+QRState simulate_circuit( const QCircuit& circuit, const QRState& state, bool verbose )
 {
-  QState new_state = state;
+  QRState new_state = state;
   for ( const auto& pGate : circuit.pGates )
   {
     if ( verbose )
