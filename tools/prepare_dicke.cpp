@@ -1,8 +1,7 @@
-#include <arch.hpp>
 #include <cstdint>
 #include <iostream>
 #include <map>
-#include <qcircuit.hpp>
+#include <xyz.hpp>
 
 using namespace xyz;
 int main()

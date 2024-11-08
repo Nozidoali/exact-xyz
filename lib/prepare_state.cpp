@@ -21,7 +21,7 @@ struct bfs_state
     // TODO: A* search
     return cnot_cost > other.cnot_cost;
   }
-  bfs_state( uint32_t mem_idx, uint32_t cnot_cost ) : mem_idx( mem_idx ), cnot_cost( cnot_cost ){};
+  bfs_state( uint32_t mem_idx, uint32_t cnot_cost ) : mem_idx( mem_idx ), cnot_cost( cnot_cost ) {};
 };
 
 struct memorized_state
@@ -29,8 +29,8 @@ struct memorized_state
   uint32_t prev;
   QRState state;
   std::shared_ptr<QGate> pGate = nullptr;
-  memorized_state( const QRState& state, uint32_t prev ) : state( state ), prev( prev ){};
-  memorized_state( const QRState& state, uint32_t prev, std::shared_ptr<QGate> pGate ) : state( state ), prev( prev ), pGate( pGate ){};
+  memorized_state( const QRState& state, uint32_t prev ) : state( state ), prev( prev ) {};
+  memorized_state( const QRState& state, uint32_t prev, std::shared_ptr<QGate> pGate ) : state( state ), prev( prev ), pGate( pGate ) {};
 };
 
 std::vector<std::shared_ptr<QGate>> enumerate_gates( const QRState& state )
@@ -172,4 +172,14 @@ QCircuit prepare_state( const QRState& state )
   detail::prepare_state_impl<true>( state, circuit );
   return circuit;
 }
+
+QCircuit prepare_ghz( uint32_t n )
+{
+  QCircuit circuit( n );
+  circuit.add_gate( std::make_shared<H>( 0 ) );
+  for ( uint32_t i = 1; i < n; i++ )
+    circuit.add_gate( std::make_shared<CX>( 0, true, i ) );
+  return circuit;
+}
+
 } // namespace xyz

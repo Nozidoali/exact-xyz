@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <iostream>
 #include <map>
-#include <zoned_arch.hpp>
+#include <xyz.hpp>
 
 using namespace xyz;
 using namespace zoned;

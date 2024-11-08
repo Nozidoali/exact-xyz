@@ -23,8 +23,9 @@ public:
 
 QCircuit decompose_circuit( const QCircuit& circuit );
 
-/* DATE24 */
-QCircuit prepare_state( const QRState& state );
+/* State preparation algorithms */
+QCircuit prepare_state( const QRState& state );  /* DATE24 */
+QCircuit prepare_ghz( uint32_t n );              /* GHZ */
 
 /* ICCAD 24 */
 QCircuit resyn( const QCircuit& circuit );

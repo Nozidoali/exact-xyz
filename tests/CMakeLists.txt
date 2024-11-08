@@ -1,8 +1,6 @@
-find_package(GTest REQUIRED)
-include_directories(${GTEST_INCLUDE_DIRS})
+include_directories(catch2) # v2.2.1
 
-add_executable(runUnitTests qgates.cpp)
-target_link_libraries(runUnitTests ${GTEST_LIBRARIES} pthread)
-target_link_libraries(runUnitTests cxyz)
+file(GLOB_RECURSE FILENAMES *.cpp)
 
-add_test(NAME cxyz-test COMMAND runUnitTests)
+add_executable(run_tests ${FILENAMES})
+target_link_libraries(run_tests PUBLIC ${PACKAGE_NAME})
