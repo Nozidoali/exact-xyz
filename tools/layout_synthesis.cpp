@@ -30,7 +30,7 @@ int main( int argc, char** argv )
   std::cout << "Number of Entanglement Zones: " << config.entanglement_zones.size() << "\n";
   std::cout << "Number of AODs: " << config.aods.size() << "\n";
 
-  // Synthesis 
+  // Synthesis
   layout_synthesis( qc, config );
 
   return 0;

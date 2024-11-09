@@ -18,6 +18,7 @@ public:
   QCircuit( uint32_t num_qbits ) : num_qbits( num_qbits ) {};
   void add_gate( std::shared_ptr<QGate> gate );
   uint32_t num_cnots() const;
+  uint32_t lev_cnots() const;
   std::string to_qasm2() const;
 };
 
@@ -25,7 +26,8 @@ QCircuit decompose_circuit( const QCircuit& circuit );
 
 /* State preparation algorithms */
 QCircuit prepare_state( const QRState& state );  /* DATE24 */
-QCircuit prepare_ghz( uint32_t n );              /* GHZ */
+QCircuit prepare_ghz( uint32_t n, bool log_depth = false );              /* GHZ */
+QCircuit prepare_w( uint32_t n, bool log_depth = false, bool cnot_opt=false );       /* W state */  
 
 /* ICCAD 24 */
 QCircuit resyn( const QCircuit& circuit );

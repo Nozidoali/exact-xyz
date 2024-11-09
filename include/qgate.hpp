@@ -29,7 +29,9 @@ public:
   virtual QRState operator()( const QRState& state, const bool reverse = false ) const = 0;
   virtual uint32_t num_cnots() const = 0;
   virtual std::string to_string() const = 0;
+  
   friend std::ostream& operator<<( std::ostream& os, const QGate& obj );
+  virtual std::vector<uint32_t> qbits() const { return { target }; };
 };
 
 class Rotation
@@ -83,9 +85,9 @@ class RY : public QGate, public Rotation, public RU2
 public:
   /* data */
   RY( uint32_t target, double theta ) : Rotation( theta ), QGate( target ), RU2( cos( theta / 2 ), sin( theta / 2 ), -sin( theta / 2 ), cos( theta / 2 ) ) {};
-  QRState operator()( const QRState& state, const bool reverse = false ) const { return RU2::operator()( state, target, reverse ); };
-  uint32_t num_cnots() const { return 0; };
-  std::string to_string() const { return "ry(" + std::to_string( theta ) + ") q[" + std::to_string( target ) + "]"; };
+  QRState operator()( const QRState& state, const bool reverse = false ) const override { return RU2::operator()( state, target, reverse ); };
+  uint32_t num_cnots() const override { return 0; };
+  std::string to_string() const override { return "ry(" + std::to_string( theta ) + ") q[" + std::to_string( target ) + "]"; };
 };
 
 class X : public QGate
@@ -94,9 +96,9 @@ private:
   /* data */
 public:
   using QGate::QGate;
-  QRState operator()( const QRState& state, const bool reverse = false ) const;
-  uint32_t num_cnots() const { return 0; };
-  std::string to_string() const { return "x q[" + std::to_string( target ) + "]"; };
+  QRState operator()( const QRState& state, const bool reverse = false ) const override;
+  uint32_t num_cnots() const override { return 0; };
+  std::string to_string() const override { return "x q[" + std::to_string( target ) + "]"; };
 };
 
 class H : public QGate, public RU2
@@ -106,9 +108,9 @@ private:
 public:
   using QGate::QGate;
   H( uint32_t target ) : QGate( target ), RU2( constants::sqrt2_inv, constants::sqrt2_inv, constants::sqrt2_inv, -constants::sqrt2_inv ) {};
-  QRState operator()( const QRState& state, const bool reverse = false ) const { return RU2::operator()( state, target, reverse ); };
-  uint32_t num_cnots() const { return 0; };
-  std::string to_string() const { return "h q[" + std::to_string( target ) + "]"; };
+  QRState operator()( const QRState& state, const bool reverse = false ) const override { return RU2::operator()( state, target, reverse ); };
+  uint32_t num_cnots() const override { return 0; };
+  std::string to_string() const override { return "h q[" + std::to_string( target ) + "]"; };
 };
 
 class T : public QGate, public U2
@@ -116,10 +118,10 @@ class T : public QGate, public U2
 public:
   using QGate::QGate;
   T( uint32_t target ) : QGate( target ), U2( 1, 0, 0, std::exp( 1i * M_PI / 4.0 ) ) {};
-  QRState operator()( const QRState& state, const bool reverse = false ) const { return U2::operator()( state, target, reverse ); };
+  QRState operator()( const QRState& state, const bool reverse = false ) const override { return U2::operator()( state, target, reverse ); };
   QState operator()( const QState& state, const bool reverse = false ) const { return U2::operator()( state, target, reverse ); };
-  uint32_t num_cnots() const { return 0; };
-  std::string to_string() const { return "t q[" + std::to_string( target ) + "]"; };
+  uint32_t num_cnots() const override { return 0; };
+  std::string to_string() const override { return "t q[" + std::to_string( target ) + "]"; };
 };
 
 class Controlled
@@ -130,6 +132,7 @@ public:
   uint32_t ctrl;
   bool phase;
   Controlled( uint32_t ctrl, bool phase ) : ctrl( ctrl ), phase( phase ) {};
+  virtual std::vector<uint32_t> qbits() const { return { ctrl }; };
 };
 
 class MultiControlled
@@ -142,6 +145,7 @@ public:
   MultiControlled() = default;
   MultiControlled( std::vector<uint32_t> ctrls ) : ctrls( ctrls ), phases( ctrls.size(), true ) {};
   MultiControlled( std::vector<uint32_t> ctrls, std::vector<bool> phases ) : ctrls( ctrls ), phases( phases ) {};
+  std::vector<uint32_t> qbits() const { return ctrls; };
 };
 
 class CRY : public Controlled, public RY
@@ -150,13 +154,14 @@ private:
 public:
   /* data */
   CRY( uint32_t ctrl, bool phase, double theta, uint32_t target ) : Controlled( ctrl, phase ), RY( target, theta ) {};
-  QRState operator()( const QRState& state, const bool reverse = false ) const;
-  std::string to_string() const
+  QRState operator()( const QRState& state, const bool reverse = false ) const override;
+  std::string to_string() const override
   {
     std::string gate = phase ? "cry" : "cry_false";
     return gate + "(" + std::to_string( theta ) + ") q[" + std::to_string( ctrl ) + "], q[" + std::to_string( target ) + "]";
   };
-  uint32_t num_cnots() const { return 2; };
+  uint32_t num_cnots() const override { return 2; };
+  std::vector<uint32_t> qbits() const override { return { ctrl, target }; };
 };
 
 class MCRY : public MultiControlled, public RY
@@ -169,22 +174,24 @@ class CX : public Controlled, public X
 {
 public:
   CX( uint32_t ctrl, bool phase, uint32_t target ) : Controlled( ctrl, phase ), X( target ) {};
-  QRState operator()( const QRState& state, const bool reverse = false ) const;
-  std::string to_string() const
+  QRState operator()( const QRState& state, const bool reverse = false ) const override;
+  std::string to_string() const override
   {
     std::string gate = phase ? "cx" : "cx_false";
     return gate + " q[" + std::to_string( ctrl ) + "], q[" + std::to_string( target ) + "]";
   };
-  uint32_t num_cnots() const { return 1; };
+  uint32_t num_cnots() const override { return 1; };
+  std::vector<uint32_t> qbits() const override { return { ctrl, target }; };
 };
 
 class CCX : public MultiControlled, public X
 {
 public:
   CCX( uint32_t ctrl1, uint32_t ctrl2, uint32_t target ) : MultiControlled( { ctrl1, ctrl2 } ), X( target ) {};
-  QRState operator()( const QRState& state, const bool reverse = false ) const;
-  std::string to_string() const { return "ccx q[" + std::to_string( ctrls[0] ) + "], q[" + std::to_string( ctrls[1] ) + "], q[" + std::to_string( target ) + "]"; };
-  uint32_t num_cnots() const { return 2; };
+  QRState operator()( const QRState& state, const bool reverse = false ) const override;
+  std::string to_string() const override { return "ccx q[" + std::to_string( ctrls[0] ) + "], q[" + std::to_string( ctrls[1] ) + "], q[" + std::to_string( target ) + "]"; };
+  uint32_t num_cnots() const override { return 2; };
+  std::vector<uint32_t> qbits() const override { return { ctrls[0], ctrls[1], target }; };
 };
 
 } // namespace xyz

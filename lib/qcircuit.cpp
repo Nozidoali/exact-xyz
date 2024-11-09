@@ -71,6 +71,18 @@ uint32_t QCircuit::num_cnots() const
   }
   return count;
 }
+uint32_t QCircuit::lev_cnots() const
+{
+  std::vector<uint32_t> levels( num_qbits, 0 );
+  for ( const auto& pGate : pGates )
+    for ( const auto& qbit : pGate->qbits() )
+      levels[qbit] += pGate->num_cnots();
+  uint32_t lev = 0;
+  for ( const auto& level : levels )
+    lev = std::max( lev, level );
+  return lev;
+}
+
 void write_qasm2( const QCircuit& circuit, const std::string& filename )
 {
   std::ofstream file;
