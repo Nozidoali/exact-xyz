@@ -1,8 +1,10 @@
 #include "qcircuit.hpp"
+#include <algorithm>
 #include <fstream>
 #include <memory>
 #include <string>
 #include <typeinfo>
+#include <vector>
 
 namespace xyz
 {
@@ -61,6 +63,10 @@ QCircuit decompose_circuit( const QCircuit& circuit )
     new_circuit.add_gate( pGate );
   }
   return new_circuit;
+}
+void QCircuit::reverse()
+{
+  std::reverse( pGates.begin(), pGates.end() );
 }
 uint32_t QCircuit::num_cnots() const
 {

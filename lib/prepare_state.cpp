@@ -1,4 +1,6 @@
 #include "qcircuit.hpp"
+#include <algorithm>
+#include <cassert>
 #include <fmt/format.h>
 #include <iostream>
 #include <memory>
@@ -7,7 +9,6 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-
 namespace xyz
 {
 namespace detail
@@ -164,6 +165,159 @@ void prepare_state_impl( const QRState& state, QCircuit& circuit )
   }
 }
 
+template<bool verbose>
+std::pair<uint32_t, uint32_t> maximize_difference_once( uint32_t num_qubits, std::unordered_set<uint32_t>& indices, std::unordered_map<uint32_t, bool>& diff_values )
+{
+  int max_diff = -1;
+  std::unordered_set<uint32_t> max_diff_indices_1;
+  uint32_t max_diff_qubit = 0;
+  uint32_t max_diff_value = false;
+  uint32_t length = indices.size();
+  std::unordered_set<uint32_t> indices_1;
+
+  for ( uint32_t qubit = 0; qubit < num_qubits; qubit++ )
+  {
+    if ( diff_values.find( qubit ) != diff_values.end() )
+      continue;
+    indices_1.clear();
+    for ( auto index : indices )
+      if ( ( index >> qubit ) & (uint32_t)1 )
+        indices_1.insert( index );
+
+    int diff = abs( (int)length - 2 * (int)indices_1.size() );
+    if ( diff == length )
+      continue;
+    if constexpr ( verbose )
+      fmt::print( "qubit: {}, diff: {}\n", qubit, diff );
+
+    if ( diff > max_diff )
+    {
+      max_diff = diff;
+      max_diff_indices_1 = indices_1;
+      max_diff_qubit = qubit;
+      max_diff_value = length > 2 * indices_1.size();
+    }
+    if ( max_diff == length - 1 )
+      break;
+  }
+
+  if ( max_diff_value )
+    indices = max_diff_indices_1;
+  else
+  {
+    // indices = indices - indices_1
+    for ( auto index : max_diff_indices_1 )
+      indices.erase( index );
+  }
+  diff_values[max_diff_qubit] = max_diff_value;
+  return { max_diff_qubit, max_diff_value };
+}
+
+template<bool verbose>
+QRState cardinality_reduction_impl( QCircuit& qcircuit, const QRState& state )
+{
+  if constexpr ( verbose )
+  {
+    fmt::print( "----------------------------------------\n" );
+    fmt::print( "[i] state: {}\n", state.to_string() );
+    fmt::print( "\tcardinality: {}\n", state.cardinality() );
+  }
+  QRState new_state = state.clone();
+  std::unordered_set<uint32_t> indices;
+  for ( auto [index, weight] : state.index_to_weight )
+    indices.insert( index );
+  std::unordered_map<uint32_t, bool> diff_values;
+  uint32_t diff_qubit, diff_value;
+  while ( indices.size() > 1 )
+  {
+    std::tie( diff_qubit, diff_value ) = maximize_difference_once<verbose>( state.n_bits, indices, diff_values );
+    if constexpr ( verbose )
+    {
+      fmt::print( "[done] diff_qubit: {}, diff_value: {}, indices.size(): {}\n", diff_qubit, diff_value, indices.size() );
+    }
+  }
+  uint32_t index0 = *indices.begin();
+  diff_values.erase( diff_qubit );
+
+  if constexpr ( verbose )
+  {
+    fmt::print( "[i] found index0 = {}\n", index0 );
+    fmt::print( "diff_values: " );
+    for ( auto [qubit, value] : diff_values )
+      fmt::print( "{}: {}, ", qubit, value );
+    fmt::print( "\n" );
+  }
+  std::unordered_set<uint32_t> candidates;
+  for ( auto [index, weight] : state.index_to_weight )
+  {
+    if ( indices.find( index ) != indices.end() )
+      continue;
+    bool valid = true;
+    for ( auto [qubit, value] : diff_values )
+      if ( ( ( index >> qubit ) & (uint32_t)1 ) != value )
+      {
+        valid = false;
+        break;
+      }
+    if constexpr ( verbose )
+      fmt::print( "index: {}, valid: {}\n", index, valid );
+    if ( valid )
+      candidates.insert( index );
+  }
+  if constexpr ( verbose )
+  {
+    fmt::print( "[i] candidates for index1: " );
+    for ( auto index : candidates )
+      fmt::print( "{}, ", index );
+    fmt::print( "\n" );
+  }
+  while ( candidates.size() > 1 )
+    (void)maximize_difference_once<verbose>( state.n_bits, candidates, diff_values );
+  uint32_t index1 = *candidates.begin();
+  for ( uint32_t qubit = 0; qubit < state.n_bits; qubit++ )
+  {
+    if ( ( index0 >> qubit & 1 ) == ( index1 >> qubit & 1 ) )
+      continue;
+    if ( qubit == diff_qubit )
+      continue;
+    qcircuit.add_gate( std::make_shared<CX>( diff_qubit, diff_value, qubit ) );
+    new_state = ( *std::make_shared<CX>( diff_qubit, diff_value, qubit ) )( new_state, true );
+  }
+
+  std::vector<uint32_t> ctrls;
+  std::vector<bool> phases;
+  for ( auto [qubit, value] : diff_values )
+  {
+    ctrls.push_back( qubit );
+    phases.push_back( value );
+  }
+  index0 = index1 ^ ( (uint32_t)1 << diff_qubit );
+  if constexpr ( verbose )
+  {
+    fmt::print( "[i] new state before merging: {}\n", new_state.to_string() );
+    fmt::print( "\tdiff_qubit: {}, diff_value: {}\n", diff_qubit, diff_value );
+    fmt::print( "[i] merging indices from index0 = {} to index1 = {}\n", index0, index1 );
+  }
+  uint32_t idx0 = index1 & ( ~( (uint32_t)1 << diff_qubit ) );
+  uint32_t idx1 = index1 | ( ( (uint32_t)1 << diff_qubit ) );
+  auto it0 = new_state.index_to_weight.find( idx0 );
+  auto it1 = new_state.index_to_weight.find( idx1 );
+  assert( it0 != new_state.index_to_weight.end() );
+  assert( it1 != new_state.index_to_weight.end() );
+  double theta = 2.0 * atan2l( (long double)it1->second, (long double)it0->second );
+  if constexpr ( verbose )
+  {
+    fmt::print( "[i] weight0: {}, weight1: {}, theta: {}\n", it0->second, it1->second, theta );
+    for ( auto [qubit, value] : diff_values )
+      fmt::print( " qubit = {}, phase = {} \n", qubit, value );
+  }
+  assert( theta < 2 * M_PI );
+  qcircuit.add_gate( std::make_shared<MCRY>( ctrls, phases, theta, diff_qubit ) );
+  new_state = ( *std::make_shared<MCRY>( ctrls, phases, theta, diff_qubit ) )( new_state, true );
+  if constexpr ( verbose )
+    fmt::print( "[i] new state after merging: {}\n", new_state.to_string() );
+  return new_state;
+}
 } // namespace detail
 
 QCircuit prepare_state( const QRState& state )
@@ -250,6 +404,20 @@ QCircuit prepare_w( uint32_t n, bool log_depth, bool cnot_opt )
       q_next++;
     }
   }
+  return circuit;
+}
+
+QCircuit prepare_sparse_state( const QRState& state )
+{
+  QCircuit circuit( state.n_bits );
+  QRState curr_state = state.clone();
+  while ( curr_state.cardinality() > 1 )
+    curr_state = detail::cardinality_reduction_impl<true>( circuit, curr_state );
+  uint32_t index = curr_state.index_to_weight.begin()->first;
+  for ( uint32_t qubit = 0; qubit < state.n_bits; qubit++ )
+    if ( ( index >> qubit ) & (uint32_t)1 )
+      circuit.add_gate( std::make_shared<X>( qubit ) );
+  circuit.reverse();
   return circuit;
 }
 

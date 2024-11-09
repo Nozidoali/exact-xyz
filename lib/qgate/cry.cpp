@@ -27,8 +27,60 @@ QRState CRY::operator()( const QRState& state, const bool reverse ) const
       new_state.index_to_weight[index] = 0;
     new_state.index_to_weight[index] += std::cos( _theta / 2 ) * weight;
     uint32_t new_index = index ^ ( 1 << target );
-    new_state.index_to_weight[new_index] += std::sin( _theta / 2 ) *
-                                            ( ( index & ( 1 << target ) ) ? -weight : weight );
+    if ( index & ( 1 << target ) )
+    {
+      new_state.index_to_weight[new_index] += c10[reverse] * weight;
+      new_state.index_to_weight[index] += c11[reverse] * weight;
+    }
+    else
+    {
+      new_state.index_to_weight[index] += c00[reverse] * weight;
+      new_state.index_to_weight[new_index] += c01[reverse] * weight;
+    }
+  }
+  for ( auto it = new_state.index_to_weight.begin(); it != new_state.index_to_weight.end(); )
+  {
+    if ( std::abs( it->second ) < QRState::eps )
+      it = new_state.index_to_weight.erase( it );
+    else
+      ++it;
+  }
+  new_state.n_bits = state.n_bits;
+  return new_state;
+}
+
+QRState MCRY::operator()( const QRState& state, const bool reverse ) const
+{
+  QRState new_state;
+  for ( const auto& [index, weight] : state.index_to_weight )
+  {
+    bool valid = true;
+    for ( uint32_t i = 0; i < ctrls.size(); i++ )
+    {
+      if ( (bool)( ( index >> ctrls[i] ) & (uint32_t)1 ) != phases[i] )
+      {
+        valid = false;
+        break;
+      }
+    }
+    if ( !valid )
+    {
+      new_state.index_to_weight[index] = weight;
+      continue;
+    }
+    if ( new_state.index_to_weight.find( index ) == new_state.index_to_weight.end() )
+      new_state.index_to_weight[index] = 0;
+    uint32_t new_index = index ^ ( 1 << target );
+    if ( index & ( 1 << target ) )
+    {
+      new_state.index_to_weight[new_index] += c10[reverse] * weight;
+      new_state.index_to_weight[index] += c11[reverse] * weight;
+    }
+    else
+    {
+      new_state.index_to_weight[index] += c00[reverse] * weight;
+      new_state.index_to_weight[new_index] += c01[reverse] * weight;
+    }
   }
   for ( auto it = new_state.index_to_weight.begin(); it != new_state.index_to_weight.end(); )
   {

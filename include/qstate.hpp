@@ -27,6 +27,7 @@ public:
   static constexpr double eps = 1e-6;
   uint64_t repr() const;
   QRState clone() const;
+  uint32_t cardinality() const { return index_to_weight.size(); };
   std::string to_string() const;
 };
 QRState ground_rstate( uint32_t n_bits );

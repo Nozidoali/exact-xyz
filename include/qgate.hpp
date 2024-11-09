@@ -168,6 +168,16 @@ class MCRY : public MultiControlled, public RY
 {
 public:
   MCRY( std::vector<uint32_t> ctrls, double theta, uint32_t target ) : MultiControlled( ctrls ), RY( target, theta ) {};
+  MCRY( std::vector<uint32_t> ctrls, std::vector<bool> phases, double theta, uint32_t target ) : MultiControlled( ctrls, phases ), RY( target, theta ) {};
+  QRState operator()( const QRState& state, const bool reverse = false ) const override;
+  std::string to_string() const override
+  {
+    std::string gate = "mcry";
+    for ( uint32_t i = 0; i < ctrls.size(); i++ )
+      gate += "[" + std::to_string( ctrls[i] ) + "]";
+    return gate + "(" + std::to_string( theta ) + ") q[" + std::to_string( target ) + "]";
+  };
+  uint32_t num_cnots() const override { return 1 << ctrls.size(); };
 };
 
 class CX : public Controlled, public X
