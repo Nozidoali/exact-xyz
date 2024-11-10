@@ -1,5 +1,5 @@
 #pragma once
 
-#include "qcircuit.hpp"
 #include "arch.hpp"
+#include "qcircuit.hpp"
 #include "zoned_arch.hpp"

@@ -7,18 +7,15 @@
 #include <sstream>
 #include <vector>
 
-namespace xyz
-{
+namespace xyz {
 
-namespace constants
-{
-constexpr double t_transfer = 15;  // us
-constexpr double t_rydberg = 0.36; // us
-constexpr double t_gate1q = 52.0;  // us
+namespace constants {
+constexpr double t_transfer = 15;   // us
+constexpr double t_rydberg  = 0.36; // us
+constexpr double t_gate1q   = 52.0; // us
 } // namespace constants
 
-struct SLM
-{
+struct SLM {
   int id;
   std::array<int, 2> site_separation; // [row separation, column separation]
   int r;                              // Number of rows
@@ -26,24 +23,21 @@ struct SLM
   std::array<int, 2> location;        // [x, y]
 };
 
-struct Zone
-{
+struct Zone {
   int zone_id;
   std::vector<uint32_t> slm_ids; // List of SLMs
   std::array<int, 2> offset;     // [x, y]
   std::array<int, 2> dimension;  // [width, height]
 };
 
-struct AOD
-{
+struct AOD {
   int id;
   int site_separation; // Site separation
   int r;               // Number of rows
   int c;               // Number of columns
 };
 
-class Config
-{
+class Config {
 public:
   int config_id; // Configuration ID
   std::string name;
