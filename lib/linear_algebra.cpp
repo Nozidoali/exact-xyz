@@ -21,14 +21,6 @@ bool gaussian_elimination( std::vector<std::vector<int>>& R, std::vector<double>
 
   for ( uint32_t i = 0; i < m; i++ )
   {
-    for ( uint32_t j = 0; j < n; j++ )
-      std::cout << R[i][j] << " ";
-    std::cout << " | " << b[i] << std::endl;
-  }
-  std::cout << std::endl;
-
-  for ( uint32_t i = 0; i < m; i++ )
-  {
     /* Find pivot for column i */
     uint32_t max_row = i;
     for ( uint32_t j = i + 1; j < m; j++ )
@@ -59,12 +51,9 @@ bool gaussian_elimination( std::vector<std::vector<int>>& R, std::vector<double>
       b[j] -= factor * b[i];
     }
   }
-
   for ( uint32_t i = n; i < m; i++ )
-  {
     if ( b[i] != 0 )
       return false;
-  }
   b.resize( n );
   return true;
 }

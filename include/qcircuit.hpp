@@ -30,6 +30,7 @@ QCircuit prepare_state( const QRState& state );                                 
 QCircuit prepare_ghz( uint32_t n, bool log_depth = false );                     /* GHZ */
 QCircuit prepare_w( uint32_t n, bool log_depth = false, bool cnot_opt=false );  /* W state */  
 QCircuit prepare_sparse_state( const QRState& state );                          /* DAC21 */
+QCircuit prepare_dicke_state( int n, int k );                                  /* DAC21 */ 
 
 /* ICCAD 24 */
 QCircuit resyn( const QCircuit& circuit );

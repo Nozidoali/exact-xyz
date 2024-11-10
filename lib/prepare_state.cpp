@@ -311,6 +311,8 @@ QRState cardinality_reduction_impl( QCircuit& qcircuit, const QRState& state )
     for ( auto [qubit, value] : diff_values )
       fmt::print( " qubit = {}, phase = {} \n", qubit, value );
   }
+  if ( index1 & ( 1 << diff_qubit ) )
+    theta = -M_PI + theta;
   assert( theta < 2 * M_PI );
   qcircuit.add_gate( std::make_shared<MCRY>( ctrls, phases, theta, diff_qubit ) );
   new_state = ( *std::make_shared<MCRY>( ctrls, phases, theta, diff_qubit ) )( new_state, true );
@@ -318,6 +320,101 @@ QRState cardinality_reduction_impl( QCircuit& qcircuit, const QRState& state )
     fmt::print( "[i] new state after merging: {}\n", new_state.to_string() );
   return new_state;
 }
+
+// Adds a CX gate to the circuit, modifying qVal and counting the CNOTs
+void add_cx( QCircuit& circuit, std::vector<std::optional<bool>>& qVal, uint32_t control, uint32_t target )
+{
+  if ( qVal[control].has_value() && !qVal[control].value() )
+    return;
+  if ( qVal[control].has_value() && qVal[control].value() )
+  {
+    circuit.add_gate( std::make_shared<X>( target ) );
+    if ( qVal[target].has_value() )
+      qVal[target] = !qVal[target].value();
+  }
+  else
+  {
+    circuit.add_gate( std::make_shared<CX>( control, true, target ) );
+    qVal[target] = std::nullopt;
+  }
+}
+
+// Adds an RY rotation gate to the circuit
+void add_ry( QCircuit& circuit, std::vector<std::optional<bool>>& qVal, uint32_t target, double theta )
+{
+  circuit.add_gate( std::make_shared<RY>( target, theta ) );
+  qVal[target] = std::nullopt;
+}
+
+// Adds a conditional RY (CRY) rotation gate with a control qubit
+void add_cry( QCircuit& circuit, std::vector<std::optional<bool>>& qVal, uint32_t control, uint32_t target, double theta )
+{
+  if ( qVal[control].has_value() && !qVal[control].value() )
+    return;
+  if ( qVal[control].has_value() && qVal[control].value() )
+  {
+    add_ry( circuit, qVal, target, theta );
+  }
+  else
+  {
+    circuit.add_gate( std::make_shared<CRY>( control, true, theta, target ) );
+    qVal[target] = std::nullopt;
+  }
+}
+
+// Adds a multi-controlled RY (MCRY) rotation gate with two control qubits
+void add_mcry( QCircuit& circuit, std::vector<std::optional<bool>>& qVal, uint32_t control1, uint32_t control2, uint32_t target, double theta )
+{
+  if ( qVal[control1].has_value() && !qVal[control1].value() )
+    return;
+  if ( qVal[control2].has_value() && !qVal[control2].value() )
+    return;
+  if ( qVal[control1].has_value() && qVal[control1].value() )
+  {
+    add_cry( circuit, qVal, control2, target, theta );
+    return;
+  }
+  if ( qVal[control2].has_value() && qVal[control2].value() )
+  {
+    add_cry( circuit, qVal, control1, target, theta );
+    return;
+  }
+  std::vector<uint32_t> controls = { control1, control2 };
+  circuit.add_gate( std::make_shared<MCRY>( controls, theta, target ) );
+  qVal[target] = std::nullopt;
+}
+
+// Function to insert a "μ" rotation gate in the circuit
+void insert_mu( QCircuit& circuit, std::vector<std::optional<bool>>& qVal, uint32_t n, uint32_t k, uint32_t j )
+{
+  double theta = 2 * std::acos( std::sqrt( 1.0 / ( n - j ) ) );
+  add_cx( circuit, qVal, j + 1, j );
+  add_cry( circuit, qVal, j, j + 1, theta );
+  add_cx( circuit, qVal, j + 1, j );
+}
+
+// Function to insert an "M" rotation gate in the circuit
+void insert_M( QCircuit& circuit, std::vector<std::optional<bool>>& qVal, uint32_t n, uint32_t k, uint32_t j, uint32_t i )
+{
+  double theta = 2 * std::acos( std::sqrt( ( i + 1.0 ) / ( n - j ) ) );
+  add_cx( circuit, qVal, j + i + 1, j );
+  add_mcry( circuit, qVal, j + i, j, j + i + 1, theta );
+  add_cx( circuit, qVal, j + i + 1, j );
+}
+
+// Function to insert a single-control controlled sequence (scs) into the circuit
+void insert_scs( QCircuit& circuit, std::vector<std::optional<bool>>& qVal, uint32_t n, uint32_t k, uint32_t j )
+{
+  assert( k >= 1 && "k should be greater than or equal to 1" );
+  insert_mu( circuit, qVal, n, k, j );
+  for ( uint32_t i = 1; i < k; ++i )
+  {
+    if ( j + i + 1 >= n )
+      break;
+    insert_M( circuit, qVal, n, k, j, i );
+  }
+}
+
 } // namespace detail
 
 QCircuit prepare_state( const QRState& state )
@@ -418,6 +515,20 @@ QCircuit prepare_sparse_state( const QRState& state )
     if ( ( index >> qubit ) & (uint32_t)1 )
       circuit.add_gate( std::make_shared<X>( qubit ) );
   circuit.reverse();
+  return circuit;
+}
+
+QCircuit prepare_dicke_state( int n, int k )
+{
+  QCircuit circuit( n );
+  std::vector<std::optional<bool>> qVal( n, false );
+  for ( int i = 0; i < k; ++i )
+  {
+    circuit.add_gate( std::make_shared<X>( i ) );
+    qVal[i] = true;
+  }
+  for ( int i = 0; i < n - 1; ++i )
+    detail::insert_scs( circuit, qVal, n, k, i );
   return circuit;
 }
 

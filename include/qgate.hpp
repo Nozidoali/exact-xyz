@@ -7,6 +7,7 @@
 #include <vector>
 #include <array>
 #include <complex>
+#include <memory>
 
 namespace xyz
 {
@@ -203,5 +204,6 @@ public:
   uint32_t num_cnots() const override { return 2; };
   std::vector<uint32_t> qbits() const override { return { ctrls[0], ctrls[1], target }; };
 };
+std::vector<std::shared_ptr<QGate>> decompose_mcry( const MCRY& gate );
 
 } // namespace xyz

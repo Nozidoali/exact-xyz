@@ -25,7 +25,6 @@ QRState CRY::operator()( const QRState& state, const bool reverse ) const
     }
     if ( new_state.index_to_weight.find( index ) == new_state.index_to_weight.end() )
       new_state.index_to_weight[index] = 0;
-    new_state.index_to_weight[index] += std::cos( _theta / 2 ) * weight;
     uint32_t new_index = index ^ ( 1 << target );
     if ( index & ( 1 << target ) )
     {
