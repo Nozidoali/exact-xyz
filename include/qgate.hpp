@@ -31,7 +31,7 @@ public:
   virtual uint32_t num_cnots() const = 0;
   virtual std::string to_string() const = 0;
   
-  friend std::ostream& operator<<( std::ostream& os, const QGate& obj );
+  friend std::ostream& operator<<( std::ostream& os, const QGate& obj ) { os << obj.to_string(); return os; };
   virtual std::vector<uint32_t> qbits() const { return { target }; };
 };
 
