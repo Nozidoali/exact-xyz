@@ -1,4 +1,13 @@
-file( GLOB LIBRARY_SOURCE_FILES "*.cpp" )
-add_library( ${PACKAGE_NAME} SHARED ${LIBRARY_SOURCE_FILES} )
-target_include_directories( ${PACKAGE_NAME} PUBLIC ${XYZ_SOURCE_DIR}/include )
+add_library(
+    ${PACKAGE_NAME}
+    SHARED
+    prepare_general.cpp
+    prepare_sparse.cpp
+    prepare_structured.cpp
+    qcircuit.cpp
+    qgate.cpp
+    qstate.cpp
+    resyn.cpp
+)
+target_link_libraries(${PACKAGE_NAME} PUBLIC xyz_headers)
 
