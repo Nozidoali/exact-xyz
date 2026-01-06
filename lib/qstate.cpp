@@ -68,6 +68,20 @@ QRState QRState::clone() const {
         index_to_weight_copy[index] = weight;
     return QRState(index_to_weight_copy, n_bits);
 }
+bool QRState::operator==(const QRState& other) const {
+    if (n_bits != other.n_bits)
+        return false;
+    if (index_to_weight.size() != other.index_to_weight.size())
+        return false;
+    for (const auto& [index, weight] : index_to_weight) {
+        auto it = other.index_to_weight.find(index);
+        if (it == other.index_to_weight.end())
+            return false;
+        if (std::abs(weight - it->second) > eps)
+            return false;
+    }
+    return true;
+}
 QRState ground_rstate(uint32_t n_bits) {
     std::map<uint32_t, double> index_to_weight;
     index_to_weight[0] = 1.0;

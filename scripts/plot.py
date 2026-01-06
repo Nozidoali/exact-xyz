@@ -2,121 +2,155 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
+from scipy.stats import gmean
 
 
-def plot_results(csv_file, output_dir="results"):
+def plot_results_with_stats(csv_file, output_file):
+    """Plot results with mean and standard deviation error bars."""
     df = pd.read_csv(csv_file)
     
     if df.empty:
-        print("No data to plot")
+        print(f"No data to plot in {csv_file}")
         return
     
-    Path(output_dir).mkdir(exist_ok=True)
-    
-    has_qualtran = 'qt_t' in df.columns
+    has_qualtran = 'qt_t_mean' in df.columns
     
     if not has_qualtran:
-        print("Qualtran data not available, plotting XYZ only")
-        fig, ax = plt.subplots(1, 1, figsize=(10, 6))
-        
-        x = np.arange(len(df))
-        bars = ax.bar(x, df['xyz_t'])
-        ax.set_xlabel('Configuration')
-        ax.set_ylabel('T-count')
-        ax.set_title('XYZ T-count (ours)')
-        ax.set_xticks(x)
-        ax.set_xticklabels([f"n={r['n']}\nc={r['cardinality']}" for _, r in df.iterrows()])
-        for i, bar in enumerate(bars):
-            height = bar.get_height()
-            ax.text(bar.get_x() + bar.get_width()/2., height,
-                   f'{int(height)}', ha='center', va='bottom')
-        ax.grid(True, alpha=0.3)
-        
-    else:
-        fig, axes = plt.subplots(1, 3, figsize=(16, 5))
-        
-        # T-count comparison
-        ax = axes[0]
-        x = np.arange(len(df))
-        width = 0.35
-        bars1 = ax.bar(x - width/2, df['qt_t'], width, label='Qualtran', color='#A23B72')
-        bars2 = ax.bar(x + width/2, df['xyz_t'], width, label='XYZ (ours)', color='#2E86AB')
-        ax.set_xlabel('Configuration')
-        ax.set_ylabel('T-count')
-        ax.set_title('T-count Comparison')
-        ax.set_xticks(x)
-        ax.set_xticklabels([f"n={r['n']}\nc={r['cardinality']}" for _, r in df.iterrows()])
-        ax.legend()
-        ax.grid(True, alpha=0.3)
-        
-        for bar in bars1:
-            height = bar.get_height()
-            ax.text(bar.get_x() + bar.get_width()/2., height,
-                   f'{int(height)}', ha='center', va='bottom', fontsize=9)
-        for bar in bars2:
-            height = bar.get_height()
-            ax.text(bar.get_x() + bar.get_width()/2., height,
-                   f'{int(height)}', ha='center', va='bottom', fontsize=9)
-        
-        # Qubit comparison
-        ax = axes[1]
-        bars1 = ax.bar(x - width/2, df['qt_qubits'], width, label='Qualtran', color='#A23B72')
-        bars2 = ax.bar(x + width/2, df['xyz_qubits'], width, label='XYZ (ours)', color='#2E86AB')
-        ax.set_xlabel('Configuration')
-        ax.set_ylabel('Total qubits')
-        ax.set_title('Qubit Count Comparison')
-        ax.set_xticks(x)
-        ax.set_xticklabels([f"n={r['n']}\nc={r['cardinality']}" for _, r in df.iterrows()])
-        ax.legend()
-        ax.grid(True, alpha=0.3)
-        
-        for bar in bars1:
-            height = bar.get_height()
-            ax.text(bar.get_x() + bar.get_width()/2., height,
-                   f'{int(height)}', ha='center', va='bottom')
-        for bar in bars2:
-            height = bar.get_height()
-            ax.text(bar.get_x() + bar.get_width()/2., height,
-                   f'{int(height)}', ha='center', va='bottom')
-        
-        # Total gates comparison
-        ax = axes[2]
-        bars1 = ax.bar(x - width/2, df['qt_t'] + df['qt_clifford'], width, label='Qualtran (T+Clifford)', color='#A23B72')
-        bars2 = ax.bar(x + width/2, df['xyz_gates'], width, label='XYZ (ours)', color='#2E86AB')
-        ax.set_xlabel('Configuration')
-        ax.set_ylabel('Total gates')
-        ax.set_title('Total Gate Count Comparison')
-        ax.set_xticks(x)
-        ax.set_xticklabels([f"n={r['n']}\nc={r['cardinality']}" for _, r in df.iterrows()])
-        ax.legend()
-        ax.grid(True, alpha=0.3)
-        
-        for bar in bars1:
-            height = bar.get_height()
-            ax.text(bar.get_x() + bar.get_width()/2., height,
-                   f'{int(height)}', ha='center', va='bottom', fontsize=9)
-        for bar in bars2:
-            height = bar.get_height()
-            ax.text(bar.get_x() + bar.get_width()/2., height,
-                   f'{int(height)}', ha='center', va='bottom', fontsize=9)
+        print(f"Qualtran data not available in {csv_file}, skipping")
+        return
     
-    plt.tight_layout()
-    pdf_file = f'{output_dir}/comparison.pdf'
-    plt.savefig(pdf_file, bbox_inches='tight')
-    print(f"Saved plot to {pdf_file}")
+    # Calculate geometric mean ratio
+    df['t_ratio_mean'] = df['xyz_t_mean'] / df['qt_t_mean'].replace(0, np.nan)
+    geomean_ratio = gmean(df['t_ratio_mean'].dropna())
+    
+    eps_val = df['eps'].iloc[0]
+    
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+    
+    x = np.arange(len(df))
+    width = 0.35
+    
+    # T-count comparison with error bars
+    ax = axes[0]
+    bars1 = ax.bar(x - width/2, df['qt_t_mean'], width, 
+                   yerr=df['qt_t_std'], label='Qualtran', 
+                   color='#A23B72', capsize=5, alpha=0.8)
+    bars2 = ax.bar(x + width/2, df['xyz_t_mean'], width, 
+                   yerr=df['xyz_t_std'], label='XYZ (ours)', 
+                   color='#2E86AB', capsize=5, alpha=0.8)
+    ax.set_xlabel('Configuration', fontsize=12)
+    ax.set_ylabel('T-count', fontsize=12)
+    ax.set_title(f'T-count Comparison (ε={eps_val:.0e})', fontsize=14, fontweight='bold')
+    ax.set_xticks(x)
+    ax.set_xticklabels([f"n={int(r['n'])}\nc={int(r['cardinality'])}" for _, r in df.iterrows()], fontsize=10)
+    ax.legend(fontsize=11)
+    ax.grid(True, alpha=0.3, axis='y')
+    
+    # Add value labels on bars
+    for bar in bars1:
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., height,
+               f'{int(height)}', ha='center', va='bottom', fontsize=8)
+    for bar in bars2:
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., height,
+               f'{int(height)}', ha='center', va='bottom', fontsize=8)
+    
+    # Qubit comparison with error bars
+    ax = axes[1]
+    bars1 = ax.bar(x - width/2, df['qt_qubits_mean'], width, 
+                   yerr=df['qt_qubits_std'], label='Qualtran', 
+                   color='#A23B72', capsize=5, alpha=0.8)
+    bars2 = ax.bar(x + width/2, df['xyz_qubits_mean'], width, 
+                   yerr=df['xyz_qubits_std'], label='XYZ (ours)', 
+                   color='#2E86AB', capsize=5, alpha=0.8)
+    ax.set_xlabel('Configuration', fontsize=12)
+    ax.set_ylabel('Total qubits', fontsize=12)
+    ax.set_title(f'Qubit Count Comparison (ε={eps_val:.0e})', fontsize=14, fontweight='bold')
+    ax.set_xticks(x)
+    ax.set_xticklabels([f"n={int(r['n'])}\nc={int(r['cardinality'])}" for _, r in df.iterrows()], fontsize=10)
+    ax.legend(fontsize=11)
+    ax.grid(True, alpha=0.3, axis='y')
+    
+    for bar in bars1:
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., height,
+               f'{int(height)}', ha='center', va='bottom', fontsize=8)
+    for bar in bars2:
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., height,
+               f'{int(height)}', ha='center', va='bottom', fontsize=8)
+    
+    # Total gates comparison with error bars
+    ax = axes[2]
+    qt_total_mean = df['qt_t_mean'] + df['qt_clifford_mean']
+    qt_total_std = np.sqrt(df['qt_t_std']**2 + df['qt_clifford_std']**2)
+    
+    bars1 = ax.bar(x - width/2, qt_total_mean, width, 
+                   yerr=qt_total_std, label='Qualtran (T+Clifford)', 
+                   color='#A23B72', capsize=5, alpha=0.8)
+    bars2 = ax.bar(x + width/2, df['xyz_gates_mean'], width, 
+                   yerr=df['xyz_gates_std'], label='XYZ (ours)', 
+                   color='#2E86AB', capsize=5, alpha=0.8)
+    ax.set_xlabel('Configuration', fontsize=12)
+    ax.set_ylabel('Total gates', fontsize=12)
+    ax.set_title(f'Total Gate Count (ε={eps_val:.0e})', fontsize=14, fontweight='bold')
+    ax.set_xticks(x)
+    ax.set_xticklabels([f"n={int(r['n'])}\nc={int(r['cardinality'])}" for _, r in df.iterrows()], fontsize=10)
+    ax.legend(fontsize=11)
+    ax.grid(True, alpha=0.3, axis='y')
+    
+    for bar in bars1:
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., height,
+               f'{int(height)}', ha='center', va='bottom', fontsize=8)
+    for bar in bars2:
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., height,
+               f'{int(height)}', ha='center', va='bottom', fontsize=8)
+    
+    # Add geometric mean text
+    fig.text(0.5, 0.02, f'Geometric Mean T-count Ratio (XYZ/Qualtran): {geomean_ratio:.3f}x', 
+             ha='center', fontsize=13, fontweight='bold', 
+             bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+    
+    plt.tight_layout(rect=[0, 0.04, 1, 1])
+    plt.savefig(output_file, bbox_inches='tight', dpi=300)
+    print(f"Saved plot to {output_file}")
+    plt.close()
 
 
 def main():
-    csv_file = Path(__file__).parent / "results" / "benchmark_results.csv"
+    results_dir = Path(__file__).parent / "results"
     
-    if not csv_file.exists():
-        print(f"Error: {csv_file} not found. Run 'python exp.py' first.")
+    if not results_dir.exists():
+        print(f"Error: {results_dir} not found. Run 'python exp.py' first.")
         return
     
-    print(f"Loading data from {csv_file}")
-    output_dir = Path(__file__).parent / "results"
-    plot_results(csv_file, output_dir)
-    print("✓ Plotting complete!")
+    # Look for statistics files for each epsilon
+    eps_values = [1e-1, 1e-2, 1e-3]
+    
+    print("=== Generating plots for all epsilon values ===\n")
+    
+    found_any = False
+    for eps in eps_values:
+        csv_file = results_dir / f"benchmark_results_eps{eps:.0e}.csv"
+        
+        if not csv_file.exists():
+            print(f"Warning: {csv_file} not found, skipping...")
+            continue
+        
+        found_any = True
+        print(f"Processing eps={eps:.0e}...")
+        
+        output_file = results_dir / f"comparison_eps{eps:.0e}.pdf"
+        plot_results_with_stats(csv_file, output_file)
+    
+    if not found_any:
+        print("\nNo benchmark result files found. Run 'python exp.py' first.")
+        return
+    
+    print("\n✓ Plotting complete!")
 
 
 if __name__ == "__main__":

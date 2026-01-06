@@ -103,9 +103,29 @@ void prepare_auto_rec(const QRState& state, std::vector<std::shared_ptr<QGate>>&
         std::cout << "n=" << supports.size() << " card=" << state.cardinality() << "\n";
 
     if (supports.size() <= 4 && state.cardinality() <= 12) {
-        QCircuit circ = prepare_state(state, false);
-        for (auto it = circ.pGates.rbegin(); it != circ.pGates.rend(); ++it)
-            gates.push_back(*it);
+        QCircuit   circ(state.n_bits);
+        bfs_params params;
+        bool       bfs_success = prepare_state_bfs(state, circ, params, false);
+
+        if (bfs_success) {
+            for (auto it = circ.pGates.rbegin(); it != circ.pGates.rend(); ++it)
+                gates.push_back(*it);
+            return;
+        }
+
+        uint32_t cardinality = state.cardinality();
+        uint32_t sparse_cost = cardinality * state.n_bits;
+        uint32_t dense_cost  = 1 << state.n_bits;
+
+        if (sparse_cost < dense_cost) {
+            QCircuit sparse_circ = prepare_sparse_state(state);
+            for (const auto& g : sparse_circ.pGates)
+                gates.push_back(g);
+        } else {
+            QCircuit dense_circ = prepare_state_dense(state);
+            for (const auto& g : dense_circ.pGates)
+                gates.push_back(g);
+        }
         return;
     }
 

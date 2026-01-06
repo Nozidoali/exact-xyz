@@ -7,6 +7,13 @@
 #include <vector>
 
 namespace xyz {
+struct bfs_params {
+    uint32_t max_depth     = 12;
+    uint32_t max_neighbors = 100;
+    bfs_params()           = default;
+    bfs_params(uint32_t max_depth, uint32_t max_neighbors) : max_depth(max_depth), max_neighbors(max_neighbors) {}
+};
+
 class QCircuit {
   public:
     uint32_t                            num_qbits = 0;
@@ -25,6 +32,7 @@ class QCircuit {
 QCircuit decompose_circuit(const QCircuit& circuit);
 
 QCircuit prepare_state(const QRState& state, bool verbose = false);
+bool     prepare_state_bfs(const QRState& state, QCircuit& circuit, const bfs_params& params, bool verbose = false);
 QCircuit prepare_state_dense(const QRState& state);
 QCircuit prepare_state_auto(const QRState& state, bool verbose = false);
 QCircuit prepare_ghz(uint32_t n, bool log_depth = false);

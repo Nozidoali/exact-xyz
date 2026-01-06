@@ -1,0 +1,9 @@
+## Coding Style Guidelines
+
+- Skip comments in code
+- Keep code short and simple
+- Minimize error handling logic
+- Minimize print messages
+- Do not use special characters
+- File naming conventions should be consistent
+

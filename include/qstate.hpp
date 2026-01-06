@@ -27,6 +27,11 @@ class QRState {
     QRState                              clone() const;
     uint32_t                             cardinality() const { return index_to_weight.size(); };
     std::string                          to_string() const;
+    bool                                 operator==(const QRState& other) const;
+};
+
+struct QRStateHash {
+    std::size_t operator()(const QRState& state) const { return state.repr(); }
 };
 QRState ground_rstate(uint32_t n_bits);
 QRState dicke_state(uint32_t n, uint32_t k);
