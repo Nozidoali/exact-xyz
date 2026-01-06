@@ -144,11 +144,35 @@ QCircuit read_qasm2(const std::string& filename, bool verbose) {
             auto target = std::stoi(line.substr(pos1 + 1, pos2 - pos1 - 1));
             circuit.add_gate(std::make_shared<H>(target));
             continue;
+        } else if (line.find("tdg ") == 0) {
+            auto pos1   = line.find("[");
+            auto pos2   = line.find("]", pos1);
+            auto target = std::stoi(line.substr(pos1 + 1, pos2 - pos1 - 1));
+            circuit.add_gate(std::make_shared<Tdg>(target));
+            continue;
         } else if (line.find("t ") == 0) {
             auto pos1   = line.find("[");
             auto pos2   = line.find("]", pos1);
             auto target = std::stoi(line.substr(pos1 + 1, pos2 - pos1 - 1));
             circuit.add_gate(std::make_shared<T>(target));
+            continue;
+        } else if (line.find("sdg ") == 0) {
+            auto pos1   = line.find("[");
+            auto pos2   = line.find("]", pos1);
+            auto target = std::stoi(line.substr(pos1 + 1, pos2 - pos1 - 1));
+            circuit.add_gate(std::make_shared<Sdg>(target));
+            continue;
+        } else if (line.find("s ") == 0) {
+            auto pos1   = line.find("[");
+            auto pos2   = line.find("]", pos1);
+            auto target = std::stoi(line.substr(pos1 + 1, pos2 - pos1 - 1));
+            circuit.add_gate(std::make_shared<S>(target));
+            continue;
+        } else if (line.find("z ") == 0) {
+            auto pos1   = line.find("[");
+            auto pos2   = line.find("]", pos1);
+            auto target = std::stoi(line.substr(pos1 + 1, pos2 - pos1 - 1));
+            circuit.add_gate(std::make_shared<Z>(target));
             continue;
         } else if (line.find("cx_false") == 0) {
             auto pos1   = line.find("[");

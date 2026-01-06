@@ -8,6 +8,7 @@ add_library(
     qgate.cpp
     qstate.cpp
     resyn.cpp
+    transpile.cpp
 )
 target_link_libraries(${PACKAGE_NAME} PUBLIC xyz_headers)
 

@@ -123,6 +123,54 @@ class T : public QGate, public U2 {
     std::string to_string() const override { return "t q[" + std::to_string(target) + "]"; };
 };
 
+class Tdg : public QGate, public U2 {
+  public:
+    using QGate::QGate;
+    Tdg(uint32_t target) : QGate(target), U2(1, 0, 0, std::exp(-1i * M_PI / 4.0)) {};
+    QRState operator()(const QRState& state, const bool reverse = false) const override {
+        return U2::operator()(state, target, reverse);
+    };
+    QState operator()(const QState& state, const bool reverse = false) const {
+        return U2::operator()(state, target, reverse);
+    };
+    uint32_t    num_cnots() const override { return 0; };
+    std::string to_string() const override { return "tdg q[" + std::to_string(target) + "]"; };
+};
+
+class Sdg : public QGate, public U2 {
+  public:
+    using QGate::QGate;
+    Sdg(uint32_t target) : QGate(target), U2(1, 0, 0, std::exp(-1i * M_PI / 2.0)) {};
+    QRState operator()(const QRState& state, const bool reverse = false) const override {
+        throw std::runtime_error("Sdg introduces complex phase; use QState simulation");
+    };
+    QState operator()(const QState& state, const bool reverse = false) const {
+        return U2::operator()(state, target, reverse);
+    };
+    uint32_t    num_cnots() const override { return 0; };
+    std::string to_string() const override { return "sdg q[" + std::to_string(target) + "]"; };
+};
+
+class Z : public QGate, public RU2 {
+  public:
+    using QGate::QGate;
+    Z(uint32_t target) : QGate(target), RU2(1, 0, 0, -1) {};
+    QRState operator()(const QRState& state, const bool reverse = false) const override {
+        return RU2::operator()(state, target, reverse);
+    };
+    uint32_t    num_cnots() const override { return 0; };
+    std::string to_string() const override { return "z q[" + std::to_string(target) + "]"; };
+};
+
+class S : public QGate, public U2 {
+  public:
+    using QGate::QGate;
+    S(uint32_t target) : QGate(target), U2(1, 0, 0, 1i) {};
+    QRState     operator()(const QRState& state, const bool reverse = false) const override;
+    uint32_t    num_cnots() const override { return 0; };
+    std::string to_string() const override { return "s q[" + std::to_string(target) + "]"; };
+};
+
 class Controlled {
   public:
     uint32_t ctrl;

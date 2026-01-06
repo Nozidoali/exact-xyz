@@ -37,4 +37,6 @@ QCircuit read_qasm2(const std::string& filename, bool verbose = false);
 
 QRState simulate_circuit(const QCircuit& circuit, const QRState& state, bool verbose = false);
 
+QCircuit transpile_clifford_t(const QCircuit& in, double eps);
+
 } // namespace xyz

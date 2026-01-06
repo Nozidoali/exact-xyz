@@ -1,4 +1,4 @@
-file(GLOB CPP_FILES "*.cpp")
+file(GLOB CPP_FILES CONFIGURE_DEPENDS "*.cpp")
 
 foreach(CPP_FILE ${CPP_FILES})
   get_filename_component(EXECUTABLE_NAME ${CPP_FILE} NAME_WE)

@@ -3,6 +3,7 @@
 #include "qstate.hpp"
 
 #include <cmath>
+#include <stdexcept>
 
 namespace xyz {
 bool Rotation::is_trivial(double theta, bool use_x) {
@@ -185,5 +186,10 @@ QRState MCRY::operator()(const QRState& state, const bool reverse) const {
     }
     new_state.n_bits = state.n_bits;
     return new_state;
+}
+
+QRState S::operator()(const QRState& state, const bool reverse) const {
+    (void)reverse;
+    throw std::runtime_error("S gate not supported in real-amplitude QRState simulation");
 }
 } // namespace xyz
