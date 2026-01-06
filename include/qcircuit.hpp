@@ -25,6 +25,8 @@ class QCircuit {
 QCircuit decompose_circuit(const QCircuit& circuit);
 
 QCircuit prepare_state(const QRState& state, bool verbose = false);
+QCircuit prepare_state_dense(const QRState& state);
+QCircuit prepare_state_auto(const QRState& state, bool verbose = false);
 QCircuit prepare_ghz(uint32_t n, bool log_depth = false);
 QCircuit prepare_w(uint32_t n, bool log_depth = false, bool cnot_opt = false);
 QCircuit prepare_sparse_state(const QRState& state);

@@ -1,6 +1,8 @@
 add_library(
     ${PACKAGE_NAME}
     SHARED
+    decompose.cpp
+    prepare_dense.cpp
     prepare_general.cpp
     prepare_sparse.cpp
     prepare_structured.cpp

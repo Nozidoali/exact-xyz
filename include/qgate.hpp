@@ -240,6 +240,25 @@ class CCX : public MultiControlled, public X {
     uint32_t              num_cnots() const override { return 2; };
     std::vector<uint32_t> qbits() const override { return {ctrls[0], ctrls[1], target}; };
 };
+
+class QROM_MCRY : public MultiControlled, public RY {
+  public:
+    double              eps;
+    std::vector<double> rotation_table;
+    QROM_MCRY(std::vector<uint32_t> ctrls, std::vector<bool> phases, std::vector<double> rotation_table,
+              uint32_t target, double eps)
+        : MultiControlled(ctrls, phases), RY(target, 0.0), eps(eps), rotation_table(rotation_table) {};
+    QRState     operator()(const QRState& state, const bool reverse = false) const override;
+    std::string to_string() const override {
+        return "qrom_mcry q[" + std::to_string(target) + "], eps=" + std::to_string(eps);
+    };
+    uint32_t num_cnots() const override {
+        uint32_t k = ctrls.size();
+        return std::min(1u << k, (uint32_t)(k * k * std::log(1.0 / eps)));
+    };
+};
+
 std::vector<std::shared_ptr<QGate>> decompose_mcry(const MCRY& gate);
+std::vector<std::shared_ptr<QGate>> decompose_mcry_qrom(const MCRY& gate, double eps);
 
 } // namespace xyz

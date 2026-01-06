@@ -48,6 +48,7 @@ parser CommandLineParser() {
     opt.add<std::string>("out", 'o', "output prefix (writes *_prep.qasm and *_ct.qasm)", false, "");
     opt.add("no_transpile", 0, "skip Clifford+T transpilation");
     opt.add("json", 0, "print JSON");
+    opt.add("verbose", 'v', "verbose output");
     return opt;
 }
 
@@ -59,9 +60,10 @@ int main(int argc, char** argv) {
     uint32_t c = (uint32_t)opt.get<int>("cardinality");
     uint64_t s = opt.get<uint64_t>("seed");
     double   e = opt.get<double>("eps");
+    bool     v = opt.exist("verbose");
 
     auto target = random_rstate(n, c, s);
-    auto prep   = prepare_state(target, false);
+    auto prep   = prepare_state_auto(target, v);
     auto prep_d = decompose_circuit(prep);
 
     bool     do_transpile = !opt.exist("no_transpile");
