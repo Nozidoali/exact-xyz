@@ -104,8 +104,8 @@ void prepare_auto_rec(const QRState& state, std::vector<std::shared_ptr<QGate>>&
 
     if (supports.size() <= 4 && state.cardinality() <= 12) {
         QCircuit circ = prepare_state(state, false);
-        for (const auto& g : circ.pGates)
-            gates.push_back(g);
+        for (auto it = circ.pGates.rbegin(); it != circ.pGates.rend(); ++it)
+            gates.push_back(*it);
         return;
     }
 
@@ -148,4 +148,3 @@ QCircuit prepare_state_auto(const QRState& state, bool verbose) {
 }
 
 } // namespace xyz
-
