@@ -35,7 +35,6 @@
 #include <iostream>
 #include <map>
 #include <sstream>
-#include <stdexcept>
 #include <string>
 #include <typeinfo>
 #include <vector>
@@ -408,6 +407,49 @@ private:
               i++;
               set_option( name, argv[i] );
             }
+          } else {
+            set_option( name );
+          }
+        }
+      } else if ( argv[i][0] == '-' && argv[i][1] != '\0' ) {
+        if ( argv[i][1] == '-' ) // treat bare "--" as end of options
+          continue;
+        char* p = strchr( argv[i] + 1, '=' );
+        if ( p ) {
+          if ( argv[i][2] != '=' && argv[i][2] != '\0' ) {
+            errors.push_back( "invalid short option: " + std::string( argv[i] ) );
+            continue;
+          }
+          char short_name = argv[i][1];
+          if ( lookup.count( short_name ) == 0 || lookup[short_name] == "" ) {
+            errors.push_back( std::string( "undefined option: -" ) + short_name );
+            continue;
+          }
+          std::string name = lookup[short_name];
+          std::string val( p + 1 );
+          set_option( name, val );
+          continue;
+        }
+
+        const size_t len = strlen( argv[i] );
+        for ( size_t j = 1; j < len; j++ ) {
+          char short_name = argv[i][j];
+          if ( lookup.count( short_name ) == 0 || lookup[short_name] == "" ) {
+            errors.push_back( std::string( "undefined option: -" ) + short_name );
+            break;
+          }
+          std::string name = lookup[short_name];
+          if ( options[name]->has_value() ) {
+            if ( j != len - 1 ) {
+              errors.push_back( std::string( "option needs value and must be last in group: -" ) + short_name );
+              break;
+            }
+            if ( i + 1 >= argc ) {
+              errors.push_back( std::string( "option needs value: -" ) + short_name );
+              break;
+            }
+            i++;
+            set_option( name, argv[i] );
           } else {
             set_option( name );
           }

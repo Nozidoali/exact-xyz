@@ -2,6 +2,9 @@
 
 #include <cmath>
 #include <cstdint>
+#include <random>
+#include <stdexcept>
+#include <unordered_set>
 
 namespace xyz {
 bool QRState::is_ground() const {
@@ -85,6 +88,52 @@ QRState dicke_state(uint32_t n, uint32_t k) {
     for (auto& [index, weight] : index_to_weight)
         weight /= std::sqrt(total_weight);
     return QRState(index_to_weight, n);
+}
+
+QRState random_rstate(uint32_t n_bits, uint32_t cardinality, uint64_t seed) {
+    if (n_bits >= 32)
+        throw std::invalid_argument("random_rstate: n_bits must be < 32 (index type is uint32_t)");
+    if (cardinality == 0)
+        throw std::invalid_argument("random_rstate: cardinality must be >= 1");
+    const uint64_t dim = 1ull << n_bits;
+    if ((uint64_t)cardinality > dim)
+        throw std::invalid_argument("random_rstate: cardinality exceeds Hilbert space dimension");
+
+    uint64_t actual_seed = seed;
+    if (actual_seed == 0) {
+        std::random_device rd;
+        actual_seed = ((uint64_t)rd() << 32) ^ (uint64_t)rd();
+    }
+    std::mt19937_64                         rng(actual_seed ? actual_seed : 1);
+    std::uniform_int_distribution<uint32_t> pick_index(0u, (uint32_t)(dim - 1));
+    std::normal_distribution<double>        pick_weight(0.0, 1.0);
+
+    std::unordered_set<uint32_t> chosen;
+    while (chosen.size() < cardinality) {
+        chosen.insert(pick_index(rng));
+    }
+
+    std::map<uint32_t, double> index_to_weight;
+    double                     norm2 = 0.0;
+    for (uint32_t index : chosen) {
+        double w               = pick_weight(rng);
+        index_to_weight[index] = w;
+        norm2 += w * w;
+    }
+
+    if (norm2 <= 0.0) {
+        auto it = index_to_weight.begin();
+        for (auto jt = std::next(it); jt != index_to_weight.end(); ++jt)
+            jt->second = 0.0;
+        if (it != index_to_weight.end())
+            it->second = 1.0;
+    } else {
+        const double inv_norm = 1.0 / std::sqrt(norm2);
+        for (auto& [index, w] : index_to_weight)
+            w *= inv_norm;
+    }
+
+    return QRState(index_to_weight, n_bits);
 }
 
 std::ostream& operator<<(std::ostream& os, const QState& obj) {

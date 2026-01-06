@@ -30,6 +30,7 @@ class QRState {
 };
 QRState ground_rstate(uint32_t n_bits);
 QRState dicke_state(uint32_t n, uint32_t k);
+QRState random_rstate(uint32_t n_bits, uint32_t cardinality, uint64_t seed = 0);
 
 class QState {
   private:
