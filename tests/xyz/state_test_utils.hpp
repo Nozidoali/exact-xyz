@@ -8,7 +8,9 @@
 #include <random>
 #include <unordered_set>
 #include <vector>
-#include <xyz.hpp>
+#include "qcircuit.hpp"
+#include "qgate.hpp"
+#include "qstate.hpp"
 
 namespace xyz::testutil {
 inline QRState normalize(QRState s) {

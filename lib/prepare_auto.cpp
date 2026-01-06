@@ -1,6 +1,8 @@
 #include "qcircuit.hpp"
 
+#include <algorithm>
 #include <cmath>
+#include <iostream>
 #include <memory>
 #include <vector>
 
@@ -88,7 +90,7 @@ void to_controlled_gate(const std::shared_ptr<QGate>& gate, uint32_t ctrl, bool 
     }
 }
 
-void prepare_dense_rec(const QRState& state, std::vector<std::shared_ptr<QGate>>& gates) {
+void prepare_auto_rec(const QRState& state, std::vector<std::shared_ptr<QGate>>& gates, bool verbose) {
     std::vector<uint32_t> supports;
     for (const auto& [index, weight] : state.index_to_weight)
         for (uint32_t i = 0; i < state.n_bits; i++)
@@ -97,39 +99,53 @@ void prepare_dense_rec(const QRState& state, std::vector<std::shared_ptr<QGate>>
                     supports.push_back(i);
             }
 
-    if (supports.size() <= 4 || state.cardinality() <= 100) {
+    if (verbose)
+        std::cout << "n=" << supports.size() << " card=" << state.cardinality() << "\n";
+
+    if (supports.size() <= 4 && state.cardinality() <= 12) {
         QCircuit circ = prepare_state(state, false);
         for (const auto& g : circ.pGates)
             gates.push_back(g);
         return;
     }
 
-    uint32_t  pivot = select_pivot_qubit(state, supports);
-    Cofactors cf    = compute_cofactors(state, pivot);
+    uint32_t cardinality = state.cardinality();
+    uint32_t sparse_cost = cardinality * state.n_bits;
+    uint32_t dense_cost  = 1 << state.n_bits;
 
-    gates.push_back(std::make_shared<RY>(pivot, 2.0 * std::atan2(cf.weight1, cf.weight0)));
+    if (sparse_cost < dense_cost) {
+        QCircuit sparse_circ = prepare_sparse_state(state);
+        for (const auto& g : sparse_circ.pGates)
+            gates.push_back(g);
+    } else {
+        uint32_t  pivot = select_pivot_qubit(state, supports);
+        Cofactors cf    = compute_cofactors(state, pivot);
 
-    std::vector<std::shared_ptr<QGate>> pos_gates, neg_gates;
-    if (cf.pos_state.cardinality() > 0)
-        prepare_dense_rec(cf.pos_state, pos_gates);
-    if (cf.neg_state.cardinality() > 0)
-        prepare_dense_rec(cf.neg_state, neg_gates);
+        gates.push_back(std::make_shared<RY>(pivot, 2.0 * std::atan2(cf.weight1, cf.weight0)));
 
-    for (const auto& g : pos_gates)
-        to_controlled_gate(g, pivot, true, gates);
-    for (const auto& g : neg_gates)
-        to_controlled_gate(g, pivot, false, gates);
+        std::vector<std::shared_ptr<QGate>> pos_gates, neg_gates;
+        if (cf.pos_state.cardinality() > 0)
+            prepare_auto_rec(cf.pos_state, pos_gates, verbose);
+        if (cf.neg_state.cardinality() > 0)
+            prepare_auto_rec(cf.neg_state, neg_gates, verbose);
+
+        for (const auto& g : pos_gates)
+            to_controlled_gate(g, pivot, true, gates);
+        for (const auto& g : neg_gates)
+            to_controlled_gate(g, pivot, false, gates);
+    }
 }
 
 } // namespace
 
-QCircuit prepare_state_dense(const QRState& state) {
+QCircuit prepare_state_auto(const QRState& state, bool verbose) {
     QCircuit                            circuit(state.n_bits);
     std::vector<std::shared_ptr<QGate>> gates;
-    prepare_dense_rec(state, gates);
+    prepare_auto_rec(state, gates, verbose);
     for (auto it = gates.rbegin(); it != gates.rend(); ++it)
         circuit.add_gate(*it);
     return circuit;
 }
 
 } // namespace xyz
+

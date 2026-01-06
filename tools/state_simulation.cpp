@@ -1,7 +1,9 @@
 #include <cmdline.hpp>
 #include <cstdint>
 #include <iostream>
-#include <xyz.hpp>
+#include <qcircuit.hpp>
+#include <qgate.hpp>
+#include <qstate.hpp>
 
 using namespace xyz;
 using cmdline::parser;

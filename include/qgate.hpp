@@ -259,6 +259,5 @@ class QROM_MCRY : public MultiControlled, public RY {
 };
 
 std::vector<std::shared_ptr<QGate>> decompose_mcry(const MCRY& gate);
-std::vector<std::shared_ptr<QGate>> decompose_mcry_qrom(const MCRY& gate, double eps);
 
 } // namespace xyz

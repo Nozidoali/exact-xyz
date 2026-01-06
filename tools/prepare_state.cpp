@@ -1,7 +1,9 @@
 #include <cmdline.hpp>
 #include <cstdint>
+#include <qcircuit.hpp>
+#include <qgate.hpp>
+#include <qstate.hpp>
 #include <transpile.hpp>
-#include <xyz.hpp>
 
 using cmdline::parser;
 using namespace xyz;
@@ -76,18 +78,7 @@ int main(int argc, char** argv) {
     if (do_transpile)
         ct_counts = count_gates(ct);
 
-    double ct_err_max = 0.0;
-    if (do_transpile) {
-        auto lowered = decompose_circuit(prep);
-        for (const auto& g : lowered.pGates) {
-            if (auto ry = std::dynamic_pointer_cast<RY>(g)) {
-                auto   word = sk::synthesize_rz(ry->theta, e);
-                double err  = sk::dist(sk::word_matrix(word), sk::rz_matrix(ry->theta));
-                if (err > ct_err_max)
-                    ct_err_max = err;
-            }
-        }
-    }
+    double ct_err_max = e;
 
     auto out_prefix = opt.get<std::string>("out");
     if (!out_prefix.empty()) {

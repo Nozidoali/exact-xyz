@@ -1,6 +1,8 @@
 #include <cmdline.hpp>
 #include <transpile.hpp>
-#include <xyz.hpp>
+#include <qcircuit.hpp>
+#include <qgate.hpp>
+#include <qstate.hpp>
 
 using cmdline::parser;
 using namespace xyz;

@@ -1,4 +1,6 @@
-#include <xyz.hpp>
+#include <qcircuit.hpp>
+#include <qgate.hpp>
+#include <qstate.hpp>
 
 using namespace xyz;
 
