@@ -27,6 +27,20 @@ file(GLOB LIB_SOURCES CONFIGURE_DEPENDS "lib/*.cpp")
 add_library(cxyz SHARED ${LIB_SOURCES})
 target_link_libraries(cxyz PUBLIC xyz_headers)
 
+# Python bindings
+option(BUILD_PYTHON_BINDINGS "Build Python bindings" ON)
+if(BUILD_PYTHON_BINDINGS)
+    find_package(Python3 COMPONENTS Interpreter Development)
+    if(Python3_FOUND AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/thrid-party/pybind11/CMakeLists.txt")
+        add_subdirectory(thrid-party/pybind11)
+        pybind11_add_module(xyz_bindings bindings/python_bindings.cpp)
+        target_link_libraries(xyz_bindings PRIVATE cxyz)
+        message(STATUS "Python bindings enabled")
+    else()
+        message(STATUS "Python bindings disabled (Python3 or pybind11 not found)")
+    endif()
+endif()
+
 # Tools executables
 file(GLOB TOOL_SOURCES CONFIGURE_DEPENDS "tools/*.cpp")
 foreach(TOOL_SOURCE ${TOOL_SOURCES})

@@ -15,3 +15,9 @@ __pycache__/
 .cursor/
 
 *.qasm
+
+# Results
+scripts/results/
+*.csv
+*.pdf
+
