@@ -59,11 +59,11 @@ int main(int argc, char** argv) {
     auto opt = CommandLineParser();
     opt.parse_check(argc, argv);
 
-    uint32_t n = (uint32_t)opt.get<int>("n");
-    uint32_t c = (uint32_t)opt.get<int>("cardinality");
-    uint64_t s = opt.get<uint64_t>("seed");
-    double   e = opt.get<double>("eps");
-    bool     v = opt.exist("verbose");
+    uint32_t n         = (uint32_t)opt.get<int>("n");
+    uint32_t c         = (uint32_t)opt.get<int>("cardinality");
+    uint64_t s         = opt.get<uint64_t>("seed");
+    double   e         = opt.get<double>("eps");
+    bool     v         = opt.exist("verbose");
     bool     use_dense = opt.exist("dense");
 
     auto target = random_rstate(n, c, s);
