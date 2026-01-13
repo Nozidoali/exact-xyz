@@ -32,6 +32,17 @@ uint32_t select_pivot_qubit(const QRState& state, const std::vector<uint32_t>& s
     return best_qubit;
 }
 
+bool is_uniform_state(const QRState& state) {
+    if (state.index_to_weight.empty())
+        return true;
+    double reference_weight = state.index_to_weight.begin()->second;
+    for (const auto& [index, weight] : state.index_to_weight) {
+        if (std::abs(weight - reference_weight) > QRState::eps)
+            return false;
+    }
+    return true;
+}
+
 struct Cofactors {
     QRState neg_state;
     QRState pos_state;
@@ -102,7 +113,7 @@ void prepare_auto_rec(const QRState& state, std::vector<std::shared_ptr<QGate>>&
     if (verbose)
         std::cout << "n=" << supports.size() << " card=" << state.cardinality() << "\n";
 
-    if (supports.size() <= 4 && state.cardinality() <= 12) {
+    if (supports.size() <= 4 && state.cardinality() <= 12 && is_uniform_state(state)) {
         QCircuit   circ(state.n_bits);
         bfs_params params;
         bool       bfs_success = prepare_state_bfs(state, circ, params, false);

@@ -2,134 +2,231 @@
 
 #include <algorithm>
 #include <cmath>
+#include <map>
 #include <memory>
+#include <optional>
+#include <unordered_map>
 #include <vector>
 
 namespace xyz {
 namespace {
 
-uint32_t select_pivot_qubit(const QRState& state, const std::vector<uint32_t>& supports) {
-    int      max_diff   = -1;
-    uint32_t best_qubit = supports[0];
-    uint32_t length     = state.cardinality();
-
-    for (uint32_t qubit : supports) {
-        uint32_t count_0 = 0;
-        for (const auto& [index, weight] : state.index_to_weight)
-            if ((index & (1 << qubit)) == 0)
-                count_0++;
-
-        int diff = std::abs((int)length - 2 * (int)count_0);
-        if (diff > max_diff) {
-            max_diff   = diff;
-            best_qubit = qubit;
+std::vector<uint64_t> get_qubit_signatures(const QRState& state) {
+    std::vector<uint64_t> signatures(state.n_bits, 0);
+    for (const auto& [index, weight] : state.index_to_weight) {
+        for (uint32_t j = 0; j < state.n_bits; j++) {
+            signatures[j] = (signatures[j] << 1) | ((index >> j) & 1);
         }
-        if (diff == (int)length - 1)
-            break;
     }
-
-    return best_qubit;
+    return signatures;
 }
 
-struct Cofactors {
-    QRState neg_state;
-    QRState pos_state;
-    double  weight0;
-    double  weight1;
+uint64_t get_const1_signature(const QRState& state) {
+    return (1ull << state.cardinality()) - 1;
+}
+
+std::optional<double> get_ap_ry_angles(const QRState& state, uint32_t qubit_index) {
+    std::optional<double> theta;
+    for (const auto& [index, weight] : state.index_to_weight) {
+        uint32_t reversed_index = index ^ (1 << qubit_index);
+        if (state.index_to_weight.find(reversed_index) == state.index_to_weight.end()) {
+            return std::nullopt;
+        }
+        uint32_t index0 = index & ~(1 << qubit_index);
+        uint32_t index1 = index | (1 << qubit_index);
+        auto     it0    = state.index_to_weight.find(index0);
+        auto     it1    = state.index_to_weight.find(index1);
+        if (it0 == state.index_to_weight.end() || it1 == state.index_to_weight.end()) {
+            return std::nullopt;
+        }
+        double weight0 = it0->second;
+        double weight1 = it1->second;
+        double _theta  = 2.0 * std::atan(weight1 / weight0);
+        if (!theta.has_value()) {
+            theta = _theta;
+        } else if (std::abs(theta.value() - _theta) < 1e-10) {
+            continue;
+        } else {
+            return std::nullopt;
+        }
+    }
+    return theta;
+}
+
+QRState apply_ry_inverse(const QRState& state, uint32_t target, double theta) {
+    double                     cos_half = std::cos(-theta / 2.0);
+    double                     sin_half = std::sin(-theta / 2.0);
+    std::map<uint32_t, double> temp_weights;
+    for (const auto& [idx, _] : state.index_to_weight) {
+        temp_weights[idx] = 0.0;
+    }
+    for (const auto& [idx, weight] : state.index_to_weight) {
+        uint32_t rdx = idx ^ (1 << target);
+        if (temp_weights.find(rdx) == temp_weights.end()) {
+            temp_weights[rdx] = 0.0;
+        }
+        if (((idx >> target) & 1) == 0) {
+            temp_weights[idx] += weight * cos_half;
+            temp_weights[rdx] += weight * sin_half;
+        } else {
+            temp_weights[idx] += weight * cos_half;
+            temp_weights[rdx] -= weight * sin_half;
+        }
+    }
+    std::map<uint32_t, double> new_weights;
+    for (const auto& [idx, w] : temp_weights) {
+        if (std::abs(w) > QRState::eps) {
+            new_weights[idx] = w;
+        }
+    }
+    return QRState(new_weights, state.n_bits);
+}
+
+QRState apply_x(const QRState& state, uint32_t target) {
+    std::map<uint32_t, double> new_weights;
+    for (const auto& [index, weight] : state.index_to_weight) {
+        new_weights[index ^ (1 << target)] = weight;
+    }
+    return QRState(new_weights, state.n_bits);
+}
+
+QRState apply_cx(const QRState& state, uint32_t control, bool control_phase, uint32_t target) {
+    std::map<uint32_t, double> new_weights;
+    for (const auto& [index, weight] : state.index_to_weight) {
+        bool     ctrl_value = ((index >> control) & 1) != 0;
+        uint32_t new_index  = (ctrl_value == control_phase) ? (index ^ (1 << target)) : index;
+        new_weights[new_index] = weight;
+    }
+    return QRState(new_weights, state.n_bits);
+}
+
+struct SupportReductionResult {
+    QRState                             state;
+    std::vector<std::shared_ptr<QGate>> gates;
 };
 
-Cofactors compute_cofactors(const QRState& state, uint32_t pivot) {
-    std::map<uint32_t, double> neg_map, pos_map;
-    double                     w0 = 0.0, w1 = 0.0;
-
-    for (const auto& [index, weight] : state.index_to_weight) {
-        uint32_t idx_0 = index & ~(1 << pivot);
-        if (index & (1 << pivot)) {
-            pos_map[idx_0] = weight;
-            w1 += weight * weight;
-        } else {
-            neg_map[idx_0] = weight;
-            w0 += weight * weight;
+SupportReductionResult ry_reduction(const QRState& input_state) {
+    QRState                             state = input_state;
+    std::vector<std::shared_ptr<QGate>> gates;
+    for (uint32_t qubit_index = 0; qubit_index < state.n_bits; qubit_index++) {
+        auto theta = get_ap_ry_angles(state, qubit_index);
+        if (theta.has_value()) {
+            gates.push_back(std::make_shared<RY>(qubit_index, theta.value()));
+            state = apply_ry_inverse(state, qubit_index, theta.value());
         }
     }
-
-    w0 = std::sqrt(w0);
-    w1 = std::sqrt(w1);
-
-    if (w0 > 1e-10)
-        for (auto& [idx, w] : neg_map)
-            w /= w0;
-    if (w1 > 1e-10)
-        for (auto& [idx, w] : pos_map)
-            w /= w1;
-
-    return {QRState(neg_map, state.n_bits), QRState(pos_map, state.n_bits), w0, w1};
+    return {state, gates};
 }
 
-void to_controlled_gate(const std::shared_ptr<QGate>& gate, uint32_t ctrl, bool phase,
-                        std::vector<std::shared_ptr<QGate>>& out) {
-    if (auto ry = std::dynamic_pointer_cast<RY>(gate)) {
-        out.push_back(std::make_shared<CRY>(ctrl, phase, ry->theta, ry->target));
-    } else if (auto cry = std::dynamic_pointer_cast<CRY>(gate)) {
-        std::vector<uint32_t> ctrls  = {ctrl, cry->ctrl};
-        std::vector<bool>     phases = {phase, cry->phase};
-        out.push_back(std::make_shared<MCRY>(ctrls, phases, cry->theta, cry->target));
-    } else if (auto cx = std::dynamic_pointer_cast<CX>(gate)) {
-        std::vector<uint32_t> ctrls  = {ctrl, cx->ctrl};
-        std::vector<bool>     phases = {phase, cx->phase};
-        out.push_back(std::make_shared<MCRY>(ctrls, phases, M_PI, cx->target));
-    } else if (auto mcry = std::dynamic_pointer_cast<MCRY>(gate)) {
-        std::vector<uint32_t> ctrls  = {ctrl};
-        std::vector<bool>     phases = {phase};
-        ctrls.insert(ctrls.end(), mcry->ctrls.begin(), mcry->ctrls.end());
-        phases.insert(phases.end(), mcry->phases.begin(), mcry->phases.end());
-        out.push_back(std::make_shared<MCRY>(ctrls, phases, mcry->theta, mcry->target));
-    } else if (auto x = std::dynamic_pointer_cast<X>(gate)) {
-        out.push_back(std::make_shared<CX>(ctrl, phase, x->target));
-    }
-}
-
-void prepare_dense_rec(const QRState& state, std::vector<std::shared_ptr<QGate>>& gates) {
-    std::vector<uint32_t> supports;
-    for (const auto& [index, weight] : state.index_to_weight)
-        for (uint32_t i = 0; i < state.n_bits; i++)
-            if (index & (1 << i)) {
-                if (std::find(supports.begin(), supports.end(), i) == supports.end())
-                    supports.push_back(i);
+SupportReductionResult x_reduction(const QRState& input_state, bool enable_cnot) {
+    auto                                   signatures = get_qubit_signatures(input_state);
+    auto                                   const1     = get_const1_signature(input_state);
+    std::unordered_map<uint64_t, uint32_t> signature_to_qubits;
+    QRState                                state = input_state;
+    std::vector<std::shared_ptr<QGate>>    gates;
+    for (uint32_t qubit_index = 0; qubit_index < signatures.size(); qubit_index++) {
+        uint64_t signature = signatures[qubit_index];
+        if (signature == 0) {
+            continue;
+        }
+        if (signature == const1) {
+            gates.push_back(std::make_shared<X>(qubit_index));
+            state = apply_x(state, qubit_index);
+            continue;
+        }
+        if (enable_cnot && signature_to_qubits.find(signature) != signature_to_qubits.end()) {
+            uint32_t control_qubit = signature_to_qubits[signature];
+            gates.push_back(std::make_shared<CX>(control_qubit, true, qubit_index));
+            state = apply_cx(state, control_qubit, true, qubit_index);
+            continue;
+        }
+        if (enable_cnot && signature_to_qubits.find(signature ^ const1) != signature_to_qubits.end()) {
+            uint32_t control_qubit = signature_to_qubits[signature ^ const1];
+            gates.push_back(std::make_shared<CX>(control_qubit, false, qubit_index));
+            state = apply_cx(state, control_qubit, false, qubit_index);
+            continue;
+        }
+        if (enable_cnot) {
+            bool found = false;
+            for (uint32_t q2 = qubit_index + 1; q2 < signatures.size(); q2++) {
+                uint64_t sig2 = signatures[q2];
+                if (signature_to_qubits.find(sig2 ^ signature) != signature_to_qubits.end()) {
+                    uint32_t ctrl = signature_to_qubits[sig2 ^ signature];
+                    gates.push_back(std::make_shared<CX>(ctrl, true, q2));
+                    state = apply_cx(state, ctrl, true, q2);
+                    gates.push_back(std::make_shared<CX>(q2, true, qubit_index));
+                    state = apply_cx(state, q2, true, qubit_index);
+                    found = true;
+                    break;
+                }
+                if (signature_to_qubits.find(sig2 ^ const1 ^ signature) != signature_to_qubits.end()) {
+                    uint32_t ctrl = signature_to_qubits[sig2 ^ const1 ^ signature];
+                    gates.push_back(std::make_shared<CX>(ctrl, true, q2));
+                    state = apply_cx(state, ctrl, true, q2);
+                    gates.push_back(std::make_shared<CX>(q2, false, qubit_index));
+                    state = apply_cx(state, q2, false, qubit_index);
+                    found = true;
+                    break;
+                }
             }
-
-    if (supports.size() <= 4 || state.cardinality() <= 100) {
-        QCircuit circ = prepare_state(state, false);
-        for (const auto& g : circ.pGates)
-            gates.push_back(g);
-        return;
+            if (found) {
+                continue;
+            }
+        }
+        signature_to_qubits[signature] = qubit_index;
     }
+    return {state, gates};
+}
 
-    uint32_t  pivot = select_pivot_qubit(state, supports);
-    Cofactors cf    = compute_cofactors(state, pivot);
+SupportReductionResult support_reduction(const QRState& input_state) {
+    auto x_result  = x_reduction(input_state, true);
+    auto ry_result = ry_reduction(x_result.state);
+    ry_result.gates.insert(ry_result.gates.end(), x_result.gates.begin(), x_result.gates.end());
+    return ry_result;
+}
 
-    gates.push_back(std::make_shared<RY>(pivot, 2.0 * std::atan2(cf.weight1, cf.weight0)));
-
-    std::vector<std::shared_ptr<QGate>> pos_gates, neg_gates;
-    if (cf.pos_state.cardinality() > 0)
-        prepare_dense_rec(cf.pos_state, pos_gates);
-    if (cf.neg_state.cardinality() > 0)
-        prepare_dense_rec(cf.neg_state, neg_gates);
-
-    for (const auto& g : pos_gates)
-        to_controlled_gate(g, pivot, true, gates);
-    for (const auto& g : neg_gates)
-        to_controlled_gate(g, pivot, false, gates);
+std::shared_ptr<QGate> conjugate_gate(const std::shared_ptr<QGate>& gate) {
+    if (auto ry = std::dynamic_pointer_cast<RY>(gate)) {
+        return std::make_shared<RY>(ry->target, -ry->theta);
+    } else if (auto cry = std::dynamic_pointer_cast<CRY>(gate)) {
+        return std::make_shared<CRY>(cry->ctrl, cry->phase, -cry->theta, cry->target);
+    } else if (auto mcry = std::dynamic_pointer_cast<MCRY>(gate)) {
+        return std::make_shared<MCRY>(mcry->ctrls, mcry->phases, -mcry->theta, mcry->target);
+    }
+    return gate;
 }
 
 } // namespace
 
 QCircuit prepare_state_dense(const QRState& state) {
-    QCircuit                            circuit(state.n_bits);
-    std::vector<std::shared_ptr<QGate>> gates;
-    prepare_dense_rec(state, gates);
-    for (auto it = gates.rbegin(); it != gates.rend(); ++it)
-        circuit.add_gate(*it);
+    auto     result = support_reduction(state);
+    QCircuit circuit(state.n_bits);
+    if (result.state.cardinality() == 1) {
+        uint32_t index     = result.state.index_to_weight.begin()->first;
+        bool     is_ground = (index == 0 && std::abs(result.state.index_to_weight.at(0) - 1.0) < 1e-6);
+        if (is_ground) {
+            for (const auto& gate : result.gates) {
+                circuit.add_gate(gate);
+            }
+        } else {
+            for (uint32_t target = 0; target < result.state.n_bits; target++) {
+                if ((index >> target) & 1) {
+                    circuit.add_gate(std::make_shared<X>(target));
+                }
+            }
+            for (auto it = result.gates.rbegin(); it != result.gates.rend(); ++it) {
+                circuit.add_gate(conjugate_gate(*it));
+            }
+        }
+    } else if (result.state.cardinality() > 1) {
+        auto sparse_circuit = prepare_sparse_state(result.state);
+        for (const auto& gate : sparse_circuit.pGates) {
+            circuit.add_gate(gate);
+        }
+        for (auto it = result.gates.rbegin(); it != result.gates.rend(); ++it) {
+            circuit.add_gate(conjugate_gate(*it));
+        }
+    }
     return circuit;
 }
 
