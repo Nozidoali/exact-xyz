@@ -28,6 +28,10 @@ class QRState {
     uint32_t                             cardinality() const { return index_to_weight.size(); };
     std::string                          to_string() const;
     bool                                 operator==(const QRState& other) const;
+    std::vector<uint32_t>                get_supports() const;
+    std::vector<uint64_t>                get_qubit_signatures() const;
+    uint64_t                             get_const1_signature() const;
+    std::optional<double>                get_ap_ry_angles(uint32_t qubit_index) const;
 };
 
 struct QRStateHash {

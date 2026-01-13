@@ -193,6 +193,21 @@ QRState S::operator()(const QRState& state, const bool reverse) const {
     throw std::runtime_error("S gate not supported in real-amplitude QRState simulation");
 }
 
+QRState MCMY::operator()(const QRState& state, const bool reverse) const {
+    QRState result = state.clone();
+    for (uint32_t i = 0; i < rotation_angles.size(); i++) {
+        std::vector<uint32_t> active_ctrls;
+        std::vector<bool>     active_phases;
+        for (uint32_t j = 0; j < ctrls.size(); j++) {
+            active_ctrls.push_back(ctrls[j]);
+            active_phases.push_back((i >> j) & 1);
+        }
+        MCRY mcry(active_ctrls, active_phases, rotation_angles[i], target);
+        result = mcry(result, reverse);
+    }
+    return result;
+}
+
 QRState QROM_MCRY::operator()(const QRState& state, const bool reverse) const {
     QRState result = state.clone();
     for (uint32_t i = 0; i < rotation_table.size(); i++) {

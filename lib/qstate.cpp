@@ -2,9 +2,11 @@
 
 #include <cmath>
 #include <cstdint>
+#include <optional>
 #include <random>
 #include <stdexcept>
 #include <unordered_set>
+#include <vector>
 
 namespace xyz {
 bool QRState::is_ground() const {
@@ -81,6 +83,57 @@ bool QRState::operator==(const QRState& other) const {
             return false;
     }
     return true;
+}
+
+std::vector<uint32_t> QRState::get_supports() const {
+    std::unordered_set<uint32_t> support_set;
+    for (const auto& [index, weight] : index_to_weight)
+        for (uint32_t i = 0; i < n_bits; i++)
+            if (index & (1 << i))
+                support_set.insert(i);
+    return std::vector<uint32_t>(support_set.begin(), support_set.end());
+}
+
+std::vector<uint64_t> QRState::get_qubit_signatures() const {
+    std::vector<uint64_t> signatures(n_bits, 0);
+    for (const auto& [index, weight] : index_to_weight) {
+        for (uint32_t j = 0; j < n_bits; j++) {
+            signatures[j] = (signatures[j] << 1) | ((index >> j) & 1);
+        }
+    }
+    return signatures;
+}
+
+uint64_t QRState::get_const1_signature() const {
+    return (1ull << cardinality()) - 1;
+}
+
+std::optional<double> QRState::get_ap_ry_angles(uint32_t qubit_index) const {
+    std::optional<double> theta;
+    for (const auto& [index, weight] : index_to_weight) {
+        uint32_t reversed_index = index ^ (1 << qubit_index);
+        if (index_to_weight.find(reversed_index) == index_to_weight.end()) {
+            return std::nullopt;
+        }
+        uint32_t index0 = index & ~(1 << qubit_index);
+        uint32_t index1 = index | (1 << qubit_index);
+        auto     it0    = index_to_weight.find(index0);
+        auto     it1    = index_to_weight.find(index1);
+        if (it0 == index_to_weight.end() || it1 == index_to_weight.end()) {
+            return std::nullopt;
+        }
+        double weight0 = it0->second;
+        double weight1 = it1->second;
+        double _theta  = 2.0 * std::atan(weight1 / weight0);
+        if (!theta.has_value()) {
+            theta = _theta;
+        } else if (std::abs(theta.value() - _theta) < 1e-10) {
+            continue;
+        } else {
+            return std::nullopt;
+        }
+    }
+    return theta;
 }
 QRState ground_rstate(uint32_t n_bits) {
     std::map<uint32_t, double> index_to_weight;
