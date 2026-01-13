@@ -7,6 +7,13 @@
 
 namespace xyz {
 
+struct bfs_params {
+    uint32_t max_depth     = 12;
+    uint32_t max_neighbors = 100;
+    bfs_params()           = default;
+    bfs_params(uint32_t max_depth, uint32_t max_neighbors) : max_depth(max_depth), max_neighbors(max_neighbors) {}
+};
+
 struct ReductionResult {
     QRState                             state;
     std::vector<std::shared_ptr<QGate>> gates;

@@ -1,4 +1,5 @@
 #include "qcircuit.hpp"
+#include "prepare-state.hpp"
 
 #include <algorithm>
 #include <iostream>

@@ -1,5 +1,6 @@
 #include "prepare-state.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <memory>
