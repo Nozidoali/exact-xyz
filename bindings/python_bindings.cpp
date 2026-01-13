@@ -1,3 +1,4 @@
+#include "prepare-state.hpp"
 #include "qcircuit.hpp"
 #include "qstate.hpp"
 #include "transpile.hpp"

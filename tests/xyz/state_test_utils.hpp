@@ -8,6 +8,7 @@
 #include <random>
 #include <unordered_set>
 #include <vector>
+#include "prepare-state.hpp"
 #include "qcircuit.hpp"
 #include "qgate.hpp"
 #include "qstate.hpp"

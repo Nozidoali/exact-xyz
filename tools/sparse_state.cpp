@@ -1,5 +1,6 @@
 #include <cmdline.hpp>
 #include <cstdint>
+#include <prepare-state.hpp>
 #include <qcircuit.hpp>
 #include <qgate.hpp>
 #include <qstate.hpp>
